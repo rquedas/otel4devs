@@ -205,16 +205,61 @@ func main(){
 > &nbsp;
 
 
-expected it's configuration to be stored in a file that's normally called config.yaml. You can easily create a Provider for that file by calling the following function:
-
-configmapprovider.NewDefault function.
-
 If you want to understand more about how the configmapprovider.Provider default implementations work, take a look at the [configmapprovider](https://github.com/open-telemetry/opentelemetry-collector/tree/v0.41.0/config/configmapprovider) folder insithe the Collector's project.
+
+We now have all the required elements to instantiate and run our Collector's build using the default collector components an their respective configurations within the config.yaml file.
+
+Here is what my main.go looks like after adding the code to instantiate our Collector  the configmapprovider.Provider.
+
+>main.go
+```go
+package main
+
+import (
+	"context"
+	"log"
+
+	"go.opentelemetry.io/collector/component"
+	"go.opentelemetry.io/collector/config/configmapprovider"
+	"go.opentelemetry.io/collector/service"
+	"go.opentelemetry.io/collector/service/defaultcomponents"
+)
+
+func main(){
+	info := component.BuildInfo{
+		Command:  "otel-collector-dev",
+		Description: "Custom Otel Collector for RQ Dev",
+		Version:  "1.0.0",
+	}
+
+	factories, err := defaultcomponents.Components()
+	if err != nil {
+		log.Fatalf("failed to build components: %v", err)
+    }
+
+	configMap := configmapprovider.NewFile("config.yaml")
+	
+	app, err := service.New(service.CollectorSettings{BuildInfo: info, Factories: factories, ConfigMapProvider: configMap})
+	
+	if err != nil {
+		log.Fatal("failed to construct the application: %w", err)
+	}
+
+	err = app.Run(context.TODO())
+	if err != nil {
+		log.Fatal("application run finished with error: %w", err)
+	}
+}
+````
 
 
 
 If you want to understand how the New function uses the CollectorSettings to instantiate the Collector, take a closer look at [collector.go](https://github.com/open-telemetry/opentelemetry-collector/blob/main/service/collector.go
 ) inside the Collector's project.
+
+
+Running the Collector
+
 
 
 

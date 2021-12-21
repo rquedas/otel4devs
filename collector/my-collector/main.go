@@ -1,9 +1,13 @@
 package main
 
 import (
+	"context"
+	"log"
+
 	"go.opentelemetry.io/collector/component"
-	"go.opentelemetry.io/collector/service/defaultcomponents"
 	"go.opentelemetry.io/collector/config/configmapprovider"
+	"go.opentelemetry.io/collector/service"
+	"go.opentelemetry.io/collector/service/defaultcomponents"
 )
 
 func main(){
@@ -20,4 +24,14 @@ func main(){
 
 	configMap := configmapprovider.NewFile("config.yaml")
 	
+	app, err := service.New(service.CollectorSettings{BuildInfo: info, Factories: factories, ConfigMapProvider: configMap})
+	
+	if err != nil {
+		log.Fatal("failed to construct the application: %w", err)
+	}
+
+	err = app.Run(context.TODO())
+	if err != nil {
+		log.Fatal("application run finished with error: %w", err)
+	}
 }
