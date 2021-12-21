@@ -5,4 +5,4 @@
 
 # [collector](collector)
 
-#### If you are looking to make data available as telemetry OR consuming Otel telemetry data, take a look at the tutorials in the collector folder
+#### If you are looking to make data available as telemetry OR consuming Otel telemetry data, take a look at the tutorials in the collector folder.
