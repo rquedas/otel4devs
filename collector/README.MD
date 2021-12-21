@@ -31,4 +31,8 @@ Otel Pipelines are datasource driven (Otel currently supports Traces, Logs and M
 
 As a developer looking to expand the Collector capabilities, your first step is to understand what datasource(s) are you going to use to build your innovation and contribute to the OpenTelemetry world. Once you picked the datasource(s) you can then decide what components are going to be required to deliver your new Collector’s capability.
 
-Now that you know the basics, you will need to bootstrap an environment where you can build and debug your components, so let’s get started!
+Now that you know the basics, here is a suggested learning roadmap:
+
+* Step 1 - Go to the [dev-collector](dev-collector) folder and learn how to build your own Collector instance to help you build and debug your components
+** 
+
