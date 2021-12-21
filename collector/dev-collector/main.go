@@ -24,13 +24,15 @@ func main(){
 
 	configMap := configmapprovider.NewFile("config.yaml")
 	
-	app, err := service.New(service.CollectorSettings{BuildInfo: info, Factories: factories, ConfigMapProvider: configMap})
+	collectorSettings := service.CollectorSettings{BuildInfo: info, Factories: factories, ConfigMapProvider: configMap}
+
+	collectorApp, err := service.New(collectorSettings)
 	
 	if err != nil {
 		log.Fatal("failed to construct the application: %w", err)
 	}
 
-	err = app.Run(context.TODO())
+	err = collectorApp.Run(context.TODO())
 	if err != nil {
 		log.Fatal("application run finished with error: %w", err)
 	}
