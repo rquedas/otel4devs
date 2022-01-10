@@ -193,7 +193,7 @@ func main(){
 		log.Fatalf("failed to build components: %v", err)
     }
 
-	configMapProvider := configmapprovider.NewFile("config.yaml")
+	configMap := configmapprovider.NewFile("config.yaml")
 	
 }
 ```
@@ -202,16 +202,18 @@ func main(){
 >
 >- I imported the `go.opentelemetry.io/collector/config/configmapprovider` package, so I can have access to the default functions to instantiate my `configmapprovider.Provider`
 > 
->- I added a variable called `configMapProvider` and initialized it using the `configmapprovider.NewFile` function which will load the contents of the `config.yaml` created earlier.
+>- I added a variable called `configMap` and initialized it using the `configmapprovider.NewFile` function which will load the contents of the `config.yaml` created earlier.
 >
 > &nbsp;
 
 
 If you want to understand more about how the configmapprovider.Provider default implementations work, take a look at the [configmapprovider](https://github.com/open-telemetry/opentelemetry-collector/tree/v0.41.0/config/configmapprovider) folder inside the Collector's project.
 
+## Creating the Collector service
+
 We now have all the required elements to instantiate our Collector's build using the default collector components an their respective configurations within the config.yaml file.
 
-Here is what my main.go looks like after adding the code to instantiate our Collector  the configmapprovider.Provider.
+Here is what my main.go looks like after adding the code to instantiate our Collector.
 
 >main.go
 ```go
@@ -261,9 +263,17 @@ func main(){
 > &nbsp;
 
 If you want to understand how the `service.New` function uses the CollectorSettings to instantiate the Collector, take a closer look at [collector.go](https://github.com/open-telemetry/opentelemetry-collector/blob/v0.41.0/service/collector.go
-) inside the Collector's project.
+) inside the Collector project.
 
 
+## Running the Collector
+Once a Collector instance is created, you will use the following method to get your collector running:
+
+```go
+func (col *Collector) Run(ctx context.Context) error
+```
+
+Here is what my main.go looks like after adding the code to run our Collector instance.
 
 >main.go
 ```go
@@ -293,20 +303,42 @@ func main(){
 
 	configMap := configmapprovider.NewFile("config.yaml")
 	
-	app, err := service.New(service.CollectorSettings{BuildInfo: info, Factories: factories, ConfigMapProvider: configMap})
+	collectorApp, err := service.New(collectorSettings)
 	
 	if err != nil {
 		log.Fatal("failed to construct the application: %w", err)
 	}
 
-	err = app.Run(context.TODO())
+	err = collectorApp.Run(context.TODO())
 	if err != nil {
 		log.Fatal("application run finished with error: %w", err)
 	}
 }
 ````
-Running the Collector
+>### Reviewing the code
+>
+>- I added a line to call `collectorApp.Run` with a `TODO context` and the necessary error handling code below it.
+>
+> &nbsp;
 
+&nbsp;
+
+If you want to understand how the `Run` method works, take a closer look at [collector.go](https://github.com/open-telemetry/opentelemetry-collector/blob/v0.41.0/service/collector.go
+) inside the Collector project.
+
+With this last code change, you are finally ready to run your collector within VSCode! 
+
+Go ahead and select your main.go tab and then select `Run | Run Without Debugging` in the main menu to start your collector.
+
+Here is what your DEBUG CONSOLE will look like if your collector is running properly.
+
+![](images/dev-collector-img1.png?raw=true)
+
+As you can see, the collector initialization generates an output showing what pipelines, expxorters, receivers and extensions have been initialized based on the config.yaml we have defined earlier.
+
+If there are any errors they will show up as part of the output too, but if everything went smothly, the last line of your console should say "Everything is ready. Begin running and processing data.".
+
+You have now a VSCode project that is bootstrapped and ready to support building and debugging components for the collector.
 
 
 
