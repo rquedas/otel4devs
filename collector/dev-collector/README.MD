@@ -2,7 +2,7 @@
 
 In order to build and debug your components, you are going to need your own Collector instance. That will allow you to launch and debug your Collector components directly within your favorite Golang IDE.
 
-The other really cool aspect of approaching the component development this way is that you can use all the cool debugging features from your IDE (stacktraces are great teachers!) to understand how the Collector itself interacts with your component code.
+The other really cool aspect of approaching the component development this way is that you can use all the cool debugging features from your IDE (stack traces are great teachers!) to understand how the Collector itself interacts with your component code.
 
 Start by creating a folder for your project and initializing a go module in it.
 
@@ -112,7 +112,7 @@ func main() {
 >
 >- I imported the `go.opentelemetry.io/collector/service/defaultcomponents` package, so I can initialize my collector using the function defaultcomponents.Components()
 > 
->- I added a variable called `factories` that will be holding all the factories for the comnponents I want my Collector to be initialized with.
+>- I added a variable called `factories` that will be holding all the factories for the components I want my Collector to be initialized with.
 >
 >	The defaultcomponents.Components() function will load the factories for the following components:
 >	* Receivers: Otlp Receiver
@@ -258,7 +258,7 @@ func main(){
 > 
 >- I added a variable called `collectorSettings` and initialized it with a service.CollectorSettings instance that finally leverages all the code you wrote so.
 > 
->- I added a variable called `collectorApp` and initialized it with the `service.New` function which will instantiate my Collector service with the proper components and configuration establised in the give `collectorSettings`.
+>- I added a variable called `collectorApp` and initialized it with the `service.New` function which will instantiate my Collector service with the proper components and configuration established in the give `collectorSettings`.
 >
 > &nbsp;
 
@@ -334,9 +334,9 @@ Here is what your DEBUG CONSOLE will look like if your collector is running prop
 
 ![](images/dev-collector-img1.png?raw=true)
 
-As you can see, the collector initialization generates an output showing what pipelines, expxorters, receivers and extensions have been initialized based on the config.yaml we have defined earlier.
+As you can see, the collector initialization generates an output showing what pipelines, exporters, receivers and extensions have been initialized based on the config.yaml we have defined earlier.
 
-If there are any errors they will show up as part of the output too, but if everything went smothly, the last line of your console should say "Everything is ready. Begin running and processing data.".
+If there are any errors they will show up as part of the output too, but if everything went smoothly, the last line of your console should say "Everything is ready. Begin running and processing data.".
 
 You have now a VSCode project that is bootstrapped and ready to support building and debugging components for the collector.
 
