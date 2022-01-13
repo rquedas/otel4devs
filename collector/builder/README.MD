@@ -86,7 +86,7 @@ For more information on how to create your builder config file, checkout [OpenTe
 
 ## Step 3 - Generating the Code and Building your Collector's distribution.
 
-All you need now it to let the `builder` do it's job, so go to your terminal and type the following command:
+All you need now is to let the `builder` do it's job, so go to your terminal and type the following command:
 
 ```
 builder --config builder-config.yaml
