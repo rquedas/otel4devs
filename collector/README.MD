@@ -36,5 +36,8 @@ Now that you know the basics, here is how the Collector's Tutorials are organize
 ## [dev-collector](dev-collector)
 
  This folder has a tutorial to help you learn how to build your own Collector instance so you can easily build and debug your components
-** 
+
+## [builder](builder)
+
+ This folder has a tutorial to help you create a Collector distribution from scratch using the `OpenTelemetry Collector Builder`
 
