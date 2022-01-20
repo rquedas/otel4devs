@@ -27,7 +27,7 @@ Here are how these 3 components work within a typical pipeline configuration:
     Exporters seat at the end of a pipeline and are focused in exporting the Otel data pipeline to any external format/backend.
 
 
-Otel Pipelines are datasource driven (Otel currently supports Traces, Logs and Metrics as a datasource), so when you are building a Collector component, it will be focused on a single datasource.
+Otel Pipelines are datasource driven (Otel currently supports Traces, Logs and Metrics as a datasource), so when you are building a Collector component, it will be focused in providing capabilities to at least 1 of the datasources.
 
 As a developer looking to expand the Collector capabilities, your first step is to understand what datasource(s) are you going to use to build your innovation and contribute to the OpenTelemetry world. Once you picked the datasource(s) you can then decide what components are going to be required to deliver your new Collector’s capability.
 
