@@ -6,7 +6,7 @@ Receivers can either pull telemetry data from a system (normally used when you d
 
 Currently, the OpenTelemetry Collector provides apis to create a receiver for each of the supported telemetry datasources. So, if you want to ingest traces into your Otel pipeline, you will build a `TracesReceiver`; for metrics ingestion, you will build a `MetricsReceiver` and last but not least, for logs you will build a `LogsReceiver`.
 
-If you want to understand more about how the available interfaces for receivers, take a look at the [receiver.go](https://github.com/open-telemetry/opentelemetry-collector/blob/main/component/receiver.go) inside the Collector's project.
+If you take a look at [receiver.go](https://github.com/open-telemetry/opentelemetry-collector/blob/main/component/receiver.go) you will quickly realize that all the receivers are inherited from the `Component` interface (you can look at [component.go](https://github.com/open-telemetry/opentelemetry-collector/blob/main/component/component.go) for details), which basically enables them to be loaded into a Collector's pipeline.
 
 
 The Collector's Receiver tutorials are organized as follow:
