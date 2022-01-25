@@ -41,3 +41,7 @@ Now that you know the basics, here is how the Collector's Tutorials are organize
 
  This folder has a tutorial to help you create a Collector distribution from scratch using the `OpenTelemetry Collector Builder`
 
+## [receiver](receiver)
+
+ This folder has tutorials to help you create receiver components to help ingest different kinds of telemetry into Collector's pipelines so they can be available in the Otel world
+
