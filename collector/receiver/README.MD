@@ -11,5 +11,5 @@ If you take a look at [receiver.go](https://github.com/open-telemetry/openteleme
 
 The Collector's Receiver tutorials are organized as follow:
 
-# [trace-receiver](trace-receiver) 
+## [trace-receiver](trace-receiver) 
 This folder contains a tutorial that demonstrates how to build a traces receiver to collect telemetry that can meaningfully be translated and analyzed as traces.
