@@ -18,7 +18,7 @@ In order to implement a traces receiver you will need the following:
 
 - A `TracesReceiver` implementation that is responsible to collect the telemetry, convert it to the internal Otel Trace format, and hand the information to the next consumer in the pipeline.
 
-In this tutorial we will create a sample trace receiver that simulates a pull operation and generates traces as an outcome of that operation. The next sections will guide you through the process of implementing the steps above in order to create the receiver, so let's get started. 
+In this tutorial we will create a sample trace receiver called `tracemock` that simulates a pull operation and generates traces as an outcome of that operation. The next sections will guide you through the process of implementing the steps above in order to create the receiver, so let's get started. 
 
 
 ### Setting up your receiver development and testing environment
@@ -116,6 +116,132 @@ dev-otelcol % ./dev-otelcol --config config.yaml
 ````
 
 Make sure you see the last line, that will confirm that the jaeger exporter has successfully established a connection to your local jaeger instance. Now that we have our environment ready, let's start writing your receiver's code.
+
+First create a folder called `tracermock` under the dev-otelcol so it will host all of our receivers code
+
+```cmd
+cd dev-otelcol
+mkdir tracermock
+````
+
+### Reading and Validating your Receiver Settings
+
+In order to be instantiated and participate in pipelines the collector needs to identify your receiver and properly load it's settings from within it's configuration file. 
+
+The `tracemock` receiver will have the following settings:
+
+- `interval`: the time interval (in minutes) between telemetry pull operations 
+- `numberOfTraces`: the number os mock traces generated for each interval
+
+Here is what the `tracemock` receiver settings will look like:
+
+```yaml
+receivers:
+  tracemock: #this line represents the ID of your receiver
+    interval: 1
+    numberOfTraces: 1
+````
+
+Under the `tracemock` folder, create a file named `config.go` where you will write all the code to support your receiver settings.
+
+```cmd
+cd tracemock
+touch config.go
+```
+
+To implement the configuration aspects of a receiver you need create a `Config` struct, so go ahead the add the following code to your `config.go` file:
+
+```go
+package tracemock
+
+type Config struct{
+
+}
+```
+
+In order to be able to give your receiver access to it's settings the `Config` struct must:
+
+- embed the [config.ReceiverSettings](https://github.com/open-telemetry/opentelemetry-collector/blob/main/config/receiver.go#L32) struct or a struct that extends it.
+
+- Add a field for each of the receiver's settings.
+
+Here is what your config.go file should look like after you implemented the requirements above
+
+>config.go
+```go
+package tracemock
+
+import (
+  "go.opentelemetry.io/collector/config"
+)
+
+// Config represents the receiver config settings within the collector's config.yaml
+type Config struct {
+   config.ReceiverSettings `mapstructure:",squash"`
+   Interval    int `mapstructure:"interval"`
+   NumberOfTraces int `mapstructure:"numberOfTraces"`
+}
+
+```
+
+>### Reviewing the code
+>
+>- I imported the `go.opentelemetry.io/collector/config` package, which is where ReceiverSettings is declared.
+>- I embedded the config.ReceiverSettings as required by the spec.
+>- I added an Interval and a NumberOfTraces fields so I can properly have access to their values from the config.yaml.
+
+&nbsp;
+
+Now that you have access to the settings, you can provide any kind of validation needed for those values by implementing the `Validate` method according to the [validatable](https://github.com/open-telemetry/opentelemetry-collector/blob/main/config/config.go#L154) interface.
+
+In this case, the interval value will be optional (we will look at generating default values later) and the the numberOfTraces will be a required value. Here is what the config.go looks like after implementing the `Validate` method.
+
+>config.go
+```go
+package tracemock
+
+import (
+  "fmt"
+  "go.opentelemetry.io/collector/config"
+)
+
+// Config represents the receiver config settings within the collector's config.yaml
+type Config struct {
+   config.ReceiverSettings `mapstructure:",squash"`
+   Interval    int `mapstructure:"interval"`
+   NumberOfTraces int `mapstructure:"numberOfTraces"`
+}
+
+
+// Validate checks if the receiver configuration is valid
+func (cfg *Config) Validate() error {
+	if (cfg.NumberOfTraces >= 1){
+	   return fmt.Errorf("numberOfTraces must be greater or equal to 1")
+	}
+	return nil
+ }
+```
+
+>### Reviewing the code
+>
+>- I imported the `fmt` package, so I can properly format print my error messages.
+>- I added the `Validate` method to my Config struct where I am checking if the numberOfTraces setting value is greater or equal to 1. If that is not true the Collector will generate an error during it's startup process and display the message accordingly.
+
+&nbsp;
+
+
+If you want to take a closer look at the structs and interfaces involved in the configuration aspects of a receiver component, take a look at the [config/receiver.go](https://github.com/open-telemetry/opentelemetry-collector/blob/main/config/receiver.go) file inside the Collector's GitHub project.
+
+
+
+
+
+
+
+
+
+
+
 
 
 
