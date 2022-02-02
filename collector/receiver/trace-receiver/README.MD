@@ -31,6 +31,8 @@ dist:
     output_path: ./dev-otelcol # the path to write the output (sources and binary). Optional.
 ```
 
+&nbsp;
+
 As an outcome you should now have a `dev-otelcol` folder with your collectors development instance ready to go.
 
 In order to properly test your trace receiver, you will need a distributed tracing backend so the collector can send the telemetry to it. We will be using [JAEGER](https://www.jaegertracing.io/docs/1.30/getting-started), if you don't have a `JAEGER` instance running, you can easily stand one using docker with the following command:
@@ -49,12 +51,16 @@ docker run -d --name jaeger \
   jaegertracing/all-in-one:1.29
 ```
 
+&nbsp;
+
 Now, create a config.yaml file so you can setup your collector's components. 
 
 ```cmd
 cd dev-otelcol
 touch config.yaml
 ```
+
+&nbsp;
 
 For now, you just need a basic traces pipeline with the `otlp` receiver, the `jaeger` and `logging` exporters, here is what your `config.yaml` file should look like:
 
@@ -83,7 +89,9 @@ service:
       processors: []
       exporters: [jaeger, logging]
 ```
-&nbsp
+
+&nbsp;
+
 
 In order to verify that your initial pipeline is properly setup, you should have the following output after running your `dev-otelcol` command: 
 
@@ -115,6 +123,8 @@ dev-otelcol % ./dev-otelcol --config config.yaml
 2022-02-01T09:29:37.208-0600    info    jaegerexporter@v0.41.0/exporter.go:186  State of the connection with the Jaeger Collector backend     {"kind": "exporter", "name": "jaeger", "state": "READY"}
 ````
 
+&nbsp;
+
 Make sure you see the last line, that will confirm that the jaeger exporter has successfully established a connection to your local jaeger instance. Now that we have our environment ready, let's start writing your receiver's code.
 
 First create a folder called `tracermock` under the dev-otelcol so it will host all of our receivers code
@@ -123,6 +133,8 @@ First create a folder called `tracermock` under the dev-otelcol so it will host 
 cd dev-otelcol
 mkdir tracermock
 ````
+
+&nbsp;
 
 ### Reading and Validating your Receiver Settings
 
@@ -142,14 +154,21 @@ receivers:
     numberOfTraces: 1
 ````
 
+&nbsp;
+
 Under the `tracemock` folder, create a file named `config.go` where you will write all the code to support your receiver settings.
+
+&nbsp;
 
 ```cmd
 cd tracemock
 touch config.go
 ```
 
+&nbsp;
+
 To implement the configuration aspects of a receiver you need create a `Config` struct, so go ahead the add the following code to your `config.go` file:
+
 
 ```go
 package tracemock
@@ -159,6 +178,8 @@ type Config struct{
 }
 ```
 
+&nbsp;
+
 In order to be able to give your receiver access to it's settings the `Config` struct must:
 
 - embed the [config.ReceiverSettings](https://github.com/open-telemetry/opentelemetry-collector/blob/main/config/receiver.go#L32) struct or a struct that extends it.
@@ -166,6 +187,7 @@ In order to be able to give your receiver access to it's settings the `Config` s
 - Add a field for each of the receiver's settings.
 
 Here is what your config.go file should look like after you implemented the requirements above
+
 
 >config.go
 ```go
@@ -187,8 +209,8 @@ type Config struct {
 >### Reviewing the code
 >
 >- I imported the `go.opentelemetry.io/collector/config` package, which is where ReceiverSettings is declared.
->- I embedded the config.ReceiverSettings as required by the spec.
->- I added an Interval and a NumberOfTraces fields so I can properly have access to their values from the config.yaml.
+>- I embedded the `config.ReceiverSettings` as required by the spec.
+>- I added the `Interval` and the `NumberOfTraces` fields so I can properly have access to their values from the config.yaml.
 
 &nbsp;
 
