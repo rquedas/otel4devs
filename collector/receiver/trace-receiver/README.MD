@@ -8,7 +8,7 @@
 
 Although the definition seems very application centric, you can leverage OpenTelemetry traces as a way to represent a request and quickly understand it's duration and the details about every step involved in completing it.
 
-The trace receiver role is to convert the request telemetry from it's original format into the Otel trace format, so the information can properly processed through the collector's pipelines.
+The trace receiver role is to convert the request telemetry from it's original format into the Otel trace format, so the information can be properly processed through the collector's pipelines.
 
 In order to implement a traces receiver you will need the following:
 
