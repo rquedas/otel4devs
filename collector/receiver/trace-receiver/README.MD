@@ -216,7 +216,7 @@ type Config struct {
 
 Now that you have access to the settings, you can provide any kind of validation needed for those values by implementing the `Validate` method according to the [validatable](https://github.com/open-telemetry/opentelemetry-collector/blob/main/config/config.go#L154) interface.
 
-In this case, the interval value will be optional (we will look at generating default values later) and the the numberOfTraces will be a required value. Here is what the config.go looks like after implementing the `Validate` method.
+In this case, the `interval` value will be optional (we will look at generating default values later) and the the `numberOfTraces` will be a required value. Here is what the config.go looks like after implementing the `Validate` method.
 
 >config.go
 ```go
@@ -247,7 +247,7 @@ func (cfg *Config) Validate() error {
 >### Reviewing the code
 >
 >- I imported the `fmt` package, so I can properly format print my error messages.
->- I added the `Validate` method to my Config struct where I am checking if the numberOfTraces setting value is greater or equal to 1. If that is not true the Collector will generate an error during it's startup process and display the message accordingly.
+>- I added the `Validate` method to my Config struct where I am checking if the `numberOfTraces` setting value is greater or equal to 1. If that is not true the Collector will generate an error during it's startup process and display the message accordingly.
 
 &nbsp;
 
