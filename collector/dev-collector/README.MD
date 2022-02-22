@@ -44,7 +44,7 @@ In order to properly initialize a `CollectorSettings` instance you will have to 
 
 &nbsp;
 
-[BuildInfo](https://github.com/open-telemetry/opentelemetry-collector/blob/v0.41.0/component/build_info.go) 
+#### [BuildInfo](https://github.com/open-telemetry/opentelemetry-collector/blob/v0.41.0/component/build_info.go) 
 
 It's meant to hold information about the collector instance. You can either pass your own information or use `component.NewDefaultBuildInfo()` to create a default one.
 
@@ -75,7 +75,7 @@ func main() {
 
 &nbsp;
 
-[Factories](https://github.com/open-telemetry/opentelemetry-collector/blob/v0.41.0/component/factories.go) 
+#### [Factories](https://github.com/open-telemetry/opentelemetry-collector/blob/v0.41.0/component/factories.go) 
 
 If you take a look at the `go.opentelemetry.io/collector/component` package you will find out that every Collector's component have it's own dedicated Factory that allows the Collector to properly initialize the component.
 
@@ -127,7 +127,7 @@ func main() {
 
 &nbsp;
 
-ConfigMapProvider
+#### ConfigMapProvider
 
  An instance of a `configmapprovider.Provider`, which is meant to help developers access the Collector's component configurations independently of where they are stored.
 

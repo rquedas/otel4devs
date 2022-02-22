@@ -33,7 +33,7 @@ dist:
 
 &nbsp;
 
-As an outcome you should now have a `dev-otelcol` folder with your collectors development instance ready to go.
+As an outcome you should now have a [dev-otelcol](dev-otelcol) folder with your collectors development instance ready to go.
 
 In order to properly test your trace receiver, you will need a distributed tracing backend so the collector can send the telemetry to it. We will be using [JAEGER](https://www.jaegertracing.io/docs/1.30/getting-started), if you don't have a `JAEGER` instance running, you can easily stand one using docker with the following command:
 
@@ -136,7 +136,8 @@ mkdir tracermock
 
 &nbsp;
 
-### Reading and Validating your Receiver Settings
+
+## Reading and Validating your Receiver Settings
 
 In order to be instantiated and participate in pipelines the collector needs to identify your receiver and properly load it's settings from within it's configuration file. 
 
@@ -255,9 +256,110 @@ func (cfg *Config) Validate() error {
 If you want to take a closer look at the structs and interfaces involved in the configuration aspects of a receiver component, take a look at the [config/receiver.go](https://github.com/open-telemetry/opentelemetry-collector/blob/main/config/receiver.go) file inside the Collector's GitHub project.
 
 
+## Enabling the Collector to instantiate your receiver.
+
+At the beginning of this tutorial, you created your `dev-otelcol` instance, which is bootstrapped with the following components:
+
+* Receivers: Otlp Receiver
+* Processors: Batch Processor
+* Exporters: Logging and Jaeger Exporters
 
 
+Go ahead and open the [components.go](dev-otelcol/components.go) file under the [dev-otelcol](dev-otelcol) folder, and let's take a look at the `components()` function. 
 
+
+```go
+func components() (component.Factories, error) {
+	var err error
+	factories := component.Factories{}
+
+	factories.Extensions, err = component.MakeExtensionFactoryMap(
+	)
+	if err != nil {
+		return component.Factories{}, err
+	}
+
+	factories.Receivers, err = component.MakeReceiverFactoryMap(
+		otlpreceiver.NewFactory(),
+	)
+	if err != nil {
+		return component.Factories{}, err
+	}
+
+	factories.Exporters, err = component.MakeExporterFactoryMap(
+		jaegerexporter.NewFactory(),
+		loggingexporter.NewFactory(),
+	)
+	if err != nil {
+		return component.Factories{}, err
+	}
+
+	factories.Processors, err = component.MakeProcessorFactoryMap(
+		batchprocessor.NewFactory(),
+	)
+	if err != nil {
+		return component.Factories{}, err
+	}
+
+	return factories, nil
+}
+```
+
+As you can see, the `components()` function is responsible to provide the Collector the factories for all it's components which is represented by a variable called `factories` of type `component.Factories` (here is the declaration of the [component.Factories](https://github.com/open-telemetry/opentelemetry-collector/blob/main/component/factories.go#L25) struct), which will then be used to instantiate the components that are configured and consumed by the collector's pipelines.
+
+Notice that `factories.Receivers` is the field holding a map to all the receiver factories (instances of `ReceiverFactory`), and it currently has the `otlpreceiver` factory only which is instantiated through the `otlpreceiver.NewFactory()` function call.
+
+The `tracemock` receiver has to provide a `ReceiverFactory` implementation, and although you will find a `ReceiverFactory` interface (you can find it's definition in the [component/receiver.go](https://github.com/open-telemetry/opentelemetry-collector/blob/main/component/receiver.go#L105) file within the Collector's project ), the right way to provide the implementation is by using the functions available within the `go.opentelemetry.io/collector/receiver/receiverhelper` package.
+
+### Implementing your ReceiverFactory
+
+Start by creating a file named factory.go within the [tracemock](dev-otelcol/tracemock) folder
+
+&nbsp;
+
+```cmd
+cd tracemock
+touch factory.go
+```
+
+&nbsp;
+
+Now let's follow the convention and add a function named `NewFactory()` that will be responsible to instantiate the `tracemock` factory. Go ahead the add the following code to your `factory.go` file:
+
+&nbsp;
+
+```go
+package tracemock
+
+import (
+	"go.opentelemetry.io/collector/component"
+)
+
+// NewFactory creates a factory for tracemock receiver.
+func NewFactory() component.ReceiverFactory {
+
+}
+```
+
+&nbsp;
+
+In order to instantiate your `tracemock` receiver factory, you will use the  following function from the `receiverhelper` package:
+
+```go
+func NewFactory(cfgType config.Type, createDefaultConfig CreateDefaultConfig, options ...FactoryOption) component.ReceiverFactory
+```
+
+The `receiverhelper.NewFactory()` instantiate and returns a `component.ReceiverFactory` and it requires the following parameters:
+
+- `config.Type`: A config.Type instance representing a unique identifier for your receiver across all collector's components.
+
+- `CreateDefaultConfig`: A reference to a function that returns the config.Receiver instance for your receiver.
+
+- `... FactoryOption`: The slice of FactoryOptions that will determine what type of MELT datasource your receiver is capable of processing.
+
+Let's now implement the code to support all the parameters required by `receiverhelper.NewFactory()`
+
+#### Identifying and Providing default settings for the receiver
 
 
 
