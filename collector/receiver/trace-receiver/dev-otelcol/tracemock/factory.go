@@ -1,9 +1,13 @@
 package tracemock
 
 import (
+	"context"
 	"time"
+
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/config"
+	"go.opentelemetry.io/collector/consumer"
+	"go.opentelemetry.io/collector/receiver/receiverhelper"
 )
 
 const (
@@ -18,7 +22,14 @@ func createDefaultConfig() config.Receiver {
 	}
 }
 
+func createTracesReceiver(_ context.Context, params component.ReceiverCreateSettings, baseCfg config.Receiver, consumer consumer.Traces) (component.TracesReceiver, error) {
+  return nil,nil
+}
+
 // NewFactory creates a factory for tracemock receiver.
 func NewFactory() component.ReceiverFactory {
-
+	return receiverhelper.NewFactory(
+		typeStr,
+		createDefaultConfig,
+		receiverhelper.WithTraces(createTracesReceiver))
 }
