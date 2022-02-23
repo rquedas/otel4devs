@@ -1,14 +1,16 @@
 package tracemock
 
 import (
-  "fmt"
-  "go.opentelemetry.io/collector/config"
+	"fmt"
+	"time"
+
+	"go.opentelemetry.io/collector/config"
 )
 
 // Config represents the receiver config settings within the collector's config.yaml
 type Config struct {
    config.ReceiverSettings `mapstructure:",squash"`
-   Interval    int `mapstructure:"interval"`
+   Interval    time.Duration `mapstructure:"interval"`
    NumberOfTraces int `mapstructure:"numberOfTraces"`
 }
 

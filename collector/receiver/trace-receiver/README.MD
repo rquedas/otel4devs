@@ -349,6 +349,8 @@ In order to instantiate your `tracemock` receiver factory, you will use the  fol
 func NewFactory(cfgType config.Type, createDefaultConfig CreateDefaultConfig, options ...FactoryOption) component.ReceiverFactory
 ```
 
+&nbsp;
+
 The `receiverhelper.NewFactory()` instantiate and returns a `component.ReceiverFactory` and it requires the following parameters:
 
 - `config.Type`: A config.Type instance representing a unique identifier for your receiver across all collector's components.
@@ -359,13 +361,92 @@ The `receiverhelper.NewFactory()` instantiate and returns a `component.ReceiverF
 
 Let's now implement the code to support all the parameters required by `receiverhelper.NewFactory()`
 
-#### Identifying and Providing default settings for the receiver
+### Identifying and Providing default settings for the receiver
 
+If you take a look at the definition of [config.Type](https://github.com/open-telemetry/opentelemetry-collector/blob/main/config/config.go#L151), you will see that it's just a string. So all we need to do is to provide a string constant representing the unique identifier for our receiver.
 
+Previously, we said that the `interval` setting for our `tracemock` receiver would be optional, in that case you will need to provide a default value for it so it can be used as part of the default settings. 
 
+Go ahead and add the following code to your `factory.go` file:
 
+```go
+const (
+	typeStr = "tracemock"
+	defaultInterval = 1 * time.Minute
+)
+````
 
+&nbsp;
 
+As for default settings, you just need to add a function that returns a config.Receiver holding the default configurations for the `tracemock` receiver.
 
+To accomplish that, go ahead and add the following code to your `factory.go` file:
+
+```go
+func createDefaultConfig() config.Receiver {
+	return &Config{
+		ReceiverSettings:   config.NewReceiverSettings(config.NewComponentID(typeStr)),
+		Interval: defaultInterval,
+	}
+}
+```
+
+&nbsp;
+
+After these two changes you will notice a few imports are missing, so here is what your `factory.go` file should look like with the proper imports:
+
+>factory.go
+```go
+package tracemock
+
+import (
+	"time"
+	"go.opentelemetry.io/collector/component"
+	"go.opentelemetry.io/collector/config"
+)
+
+const (
+	typeStr = "tracemock"
+	defaultInterval = 1 * time.Minute
+)
+
+func createDefaultConfig() config.Receiver {
+	return &Config{
+		ReceiverSettings:   config.NewReceiverSettings(config.NewComponentID(typeStr)),
+		Interval: defaultInterval,
+	}
+}
+
+// NewFactory creates a factory for tracemock receiver.
+func NewFactory() component.ReceiverFactory {
+
+}
+```
+
+>### Reviewing the code
+>
+>- Importing the `time` package in order to support the time.Duration type for the defaultInterval
+>- Importing the `go.opentelemetry.io/collector/config` package, which is where the Receiver interface and the NewReceiverSettings() and NewComponentID() functions are declared.
+>- Added a string constant called `typeStr` to represent the unique identifier (component ID) of the receiver and assigned `tracemock` as it's value. This id is going to be used to fetch the receiver settings from the collector's config.
+>- Added a `time.Duration` constant called `defaultInterval` to represent the default value for our receiver's `Interval` setting. We will be setting the default value for 1 minute hence the assignment of `1 * time.Minute` as it's value.
+>- Added a function called `createDefaultConfig` which is responsible to return a config.Receiver implementation, which in this case is going to be an instance of our `tracemock.Config` struct.   
+>   - The `tracemock.Config.ReceiverSettings` field was initialized using the `config.NewReceiverSettings` function which returns a `config.ReceiverSettings` instance based on a given `config.ComponentID`.  
+>   - To provide the proper `config.ComponentID`, we used the function `config.NewComponentID` which returns a `config.ComponentID` for the given `config.Type` which in our case is represented by the variable `typeStr`
+>- The `tracemock.Config.Interval` field was initialized with the `defaultInterval` constant.
+
+&nbsp;
+
+If you want to take a closer look at `ReceiverSettings` struct and `NewReceiverSettings` function within the [config/receiver.go](https://github.com/open-telemetry/opentelemetry-collector/blob/main/config/receiver.go) file inside the Collector's GitHub project.
+
+If you want to take a closer look at `ComponentID` struct and `NewComponentID` function within the [config/identifiable.go](https://github.com/open-telemetry/opentelemetry-collector/blob/main/config/identifiable.go) file inside the Collector's GitHub project.
+
+### Enabling trace processing for the receiver
+
+The same receiver component can process traces, metrics and logs, but for the `tracemock` receiver, we will be only handling traces. The `component.ReceiverFactory` interface provides the following function to enable trace processing:
+
+```go
+CreateTracesReceiver(ctx context.Context, set ReceiverCreateSettings,
+		cfg config.Receiver, nextConsumer consumer.Traces) (TracesReceiver, error)
+```
 
 
