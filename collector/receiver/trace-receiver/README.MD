@@ -318,11 +318,14 @@ Notice that `factories.Receivers` is the field holding a map to all the receiver
 
 The `tracemock` receiver has to provide a `ReceiverFactory` implementation, and although you will find a `ReceiverFactory` interface (you can find it's definition in the [component/receiver.go](https://github.com/open-telemetry/opentelemetry-collector/blob/main/component/receiver.go#L105) file within the Collector's project ), the right way to provide the implementation is by using the functions available within the `go.opentelemetry.io/collector/receiver/receiverhelper` package.
 
-### Implementing your ReceiverFactory
-
-Start by creating a file named factory.go within the [tracemock](dev-otelcol/tracemock) folder
+&nbsp;
 
 &nbsp;
+
+### Implementing your ReceiverFactory
+&nbsp;
+
+Start by creating a file named factory.go within the [tracemock](dev-otelcol/tracemock) folder
 
 ```cmd
 cd tracemock
@@ -332,8 +335,6 @@ touch factory.go
 &nbsp;
 
 Now let's follow the convention and add a function named `NewFactory()` that will be responsible to instantiate the `tracemock` factory. Go ahead the add the following code to your `factory.go` file:
-
-&nbsp;
 
 ```go
 package tracemock
@@ -370,7 +371,10 @@ Let's now implement the code to support all the parameters required by `receiver
 
 &nbsp;
 
+&nbsp;
+
 ### Identifying and Providing default settings for the receiver
+&nbsp;
 
 If you take a look at the definition of [config.Type](https://github.com/open-telemetry/opentelemetry-collector/blob/main/config/config.go#L151), you will see that it's just a string. So all we need to do is to provide a string constant representing the unique identifier for our receiver.
 
@@ -451,8 +455,10 @@ If you want to take a closer look at `ComponentID` struct and `NewComponentID` f
 
 &nbsp;
 
+&nbsp;
 
 ### Enabling trace processing for the receiver
+&nbsp;
 
 The same receiver component can process traces, metrics and logs, but for the `tracemock` receiver, we will be only handling traces. The `receiverhelper` package provides the following function and type to enable trace processing:
 
@@ -547,7 +553,14 @@ func NewFactory() component.ReceiverFactory {
 
 &nbsp;
 
-At this point, you have the `tracemock` factory and config code needed for the Collector to validate the `tracemock` receiver settings if they are defined within the `config.yaml`. 
+At this point, you have the `tracemock` factory and config code needed for the Collector to validate the `tracemock` receiver settings if they are defined within the `config.yaml`. You just need to add it to the Collector's initialization process.
+
+&nbsp;
+
+&nbsp;
+
+### Adding the receiver factory to the Collector's initialization
+&nbsp;
 
 As explained before, all the Collector components are instantiated by the `components()` function within the `components.go` file.
 
@@ -612,5 +625,36 @@ func components() (component.Factories, error) {
 >- Importing the `dev-otelcol\tracemock` package which is where the receiver types and function are.
 >- Added a call to `tracemock.NewFactory()` as a parameter of the `component.MakeReceiverFactoryMap()` call so your `tracemock` receiver factory is properly added to the `factories` map.
 
+&nbsp;
+
+We added the `tracemock` receiver settings to the `config.yaml` previously, so here is what the beginning of the output for running your collector with `dev-otelcol` command should look like after building it with the current codebase: 
+
+```cmd
+dev-otelcol % ./dev-otelcol --config config.yaml
+2022-02-24T12:17:41.454-0600    info    service/collector.go:190        Applying configuration...
+2022-02-24T12:17:41.454-0600    info    builder/exporters_builder.go:254        Exporter was built.     {"kind": "exporter", "name": "logging"}
+2022-02-24T12:17:41.454-0600    info    builder/exporters_builder.go:254        Exporter was built.     {"kind": "exporter", "name": "jaeger"}
+2022-02-24T12:17:41.454-0600    info    builder/pipelines_builder.go:222        Pipeline was built.     {"name": "pipeline", "name": "traces"}
+2022-02-24T12:17:41.454-0600    info    builder/receivers_builder.go:111        Ignoring receiver as it is not used by any pipeline      {"kind": "receiver", "name": "tracemock"}
+2022-02-24T12:17:41.454-0600    info    builder/receivers_builder.go:224        Receiver was built.     {"kind": "receiver", "name": "otlp", "datatype": "traces"}
+2022-02-24T12:17:41.454-0600    info    service/service.go:86   Starting extensions...
+2022-02-24T12:17:41.454-0600    info    service/service.go:91   Starting exporters...
+```
+
+&nbsp;
+
+Look for the log line for "builder/receivers_builder.go:111" (it's the 4th line from the bottom at the snippet showed here), you can see that the Collector found the settings for the `tracemock` receiver, validated them (the current settings are all correct), but ignores the receiver given that it's not used in any pipeline.
+
+Let's check if the `tracemock` factory is validating the receiver settings correctly, the `interval` setting isn't required, so if you remove it from the `config.yaml` and run the command again you should get the same output.
+
+Now, let's test one of `tracemock` settings validation rules. Remove the `number_of_traces` setting from the `config.yaml`, and here is what the output for running the collector will look like:
+
+```cmd
+dev-otelcol % ./dev-otelcol --config config.yaml
+Error: invalid configuration: receiver "tracemock" has invalid configuration: number_of_traces must be at least 1
+2022/02/24 13:00:20 collector server run finished with error: invalid configuration: receiver "tracemock" has invalid configuration: number_of_traces must be at least 1
+````
+
+&nbsp;
 
 
