@@ -27,6 +27,7 @@ First use the tutorial from the [builder](../../builder) folder to create a coll
 
 ```yaml
 dist:
+    module: dev-otelcol # the module name for the new distribution, following Go mod conventions. Optional, but recommended.
     name: dev-otelcol # the binary name. Optional.
     output_path: ./dev-otelcol # the path to write the output (sources and binary). Optional.
 ```
@@ -127,11 +128,11 @@ dev-otelcol % ./dev-otelcol --config config.yaml
 
 Make sure you see the last line, that will confirm that the jaeger exporter has successfully established a connection to your local jaeger instance. Now that we have our environment ready, let's start writing your receiver's code.
 
-First create a folder called `tracermock` under the dev-otelcol so it will host all of our receivers code
+First create a folder called `tracemock` under the dev-otelcol so it will host all of our receivers code
 
 ```cmd
 cd dev-otelcol
-mkdir tracermock
+mkdir tracemock
 ````
 
 &nbsp;
@@ -143,16 +144,16 @@ In order to be instantiated and participate in pipelines the collector needs to 
 
 The `tracemock` receiver will have the following settings:
 
-- `interval`: the time interval (in minutes) between telemetry pull operations 
-- `numberOfTraces`: the number os mock traces generated for each interval
+- `interval`: a string representing the time interval (in minutes) between telemetry pull operations 
+- `number_of_traces`: the number os mock traces generated for each interval
 
 Here is what the `tracemock` receiver settings will look like:
 
 ```yaml
 receivers:
   tracemock: #this line represents the ID of your receiver
-    interval: 1
-    numberOfTraces: 1
+    interval: 1m
+    number_of_traces: 1
 ````
 
 &nbsp;
@@ -201,8 +202,8 @@ import (
 // Config represents the receiver config settings within the collector's config.yaml
 type Config struct {
    config.ReceiverSettings `mapstructure:",squash"`
-   Interval    int `mapstructure:"interval"`
-   NumberOfTraces int `mapstructure:"numberOfTraces"`
+   Interval    string `mapstructure:"interval"`
+   NumberOfTraces int `mapstructure:"number_of_traces"`
 }
 
 ```
@@ -217,7 +218,7 @@ type Config struct {
 
 Now that you have access to the settings, you can provide any kind of validation needed for those values by implementing the `Validate` method according to the [validatable](https://github.com/open-telemetry/opentelemetry-collector/blob/main/config/config.go#L154) interface.
 
-In this case, the `interval` value will be optional (we will look at generating default values later) and the the `numberOfTraces` will be a required value. Here is what the config.go looks like after implementing the `Validate` method.
+In this case, the `interval` value will be optional (we will look at generating default values later) but when defined should be at least 1 minute (1m) and the the `number_of_traces` will be a required value. Here is what the config.go looks like after implementing the `Validate` method.
 
 >config.go
 ```go
@@ -231,15 +232,20 @@ import (
 // Config represents the receiver config settings within the collector's config.yaml
 type Config struct {
    config.ReceiverSettings `mapstructure:",squash"`
-   Interval    int `mapstructure:"interval"`
-   NumberOfTraces int `mapstructure:"numberOfTraces"`
+   Interval    string `mapstructure:"interval"`
+   NumberOfTraces int `mapstructure:"number_of_traces"`
 }
 
 
 // Validate checks if the receiver configuration is valid
 func (cfg *Config) Validate() error {
-	if (cfg.NumberOfTraces >= 1){
-	   return fmt.Errorf("numberOfTraces must be greater or equal to 1")
+    interval, _ := time.ParseDuration(cfg.Interval)
+	if (interval.Minutes() < 1){
+	   return fmt.Errorf("when defined, the interval has to be set to at least 1 minute (1m)")
+	}
+
+	if (cfg.NumberOfTraces < 1){
+	   return fmt.Errorf("number_of_traces must be greater or equal to 1")
 	}
 	return nil
  }
@@ -248,7 +254,7 @@ func (cfg *Config) Validate() error {
 >### Reviewing the code
 >
 >- I imported the `fmt` package, so I can properly format print my error messages.
->- I added the `Validate` method to my Config struct where I am checking if the `numberOfTraces` setting value is greater or equal to 1. If that is not true the Collector will generate an error during it's startup process and display the message accordingly.
+>- I added the `Validate` method to my Config struct where I am checking if the `interval` setting value is at least 1 minute (1m) and if the `number_of_traces` setting value is greater or equal to 1. If that is not true the Collector will generate an error during it's startup process and display the message accordingly.
 
 &nbsp;
 
@@ -463,10 +469,10 @@ The `receiverhelper.WithTraces()` instantiate and returns a `receiverhelper.Fact
 &nbsp;
 
 The `receiverhelper.CreateTracesReceiver` type is a pointer to a function that is responsible to instantiate and return a `component.TraceReceiver` instance and it requires the following parameters:
-- `context.Context`: the reference to the collector's context.Context so your trace receiver can properly manage it's execution context.
-- `component.ReceiverCreateSettings`: 
+- `context.Context`: the reference to the collector's `context.Context` so your trace receiver can properly manage it's execution context.
+- `component.ReceiverCreateSettings`: the reference to some of the collector's settings under which your receiver is created. 
 - `config.Receiver`: the reference for the receiver config settings passed by the collector to the factory so it can properly read it's settings from the collector config.
-- `consumer.Traces`: the reference to the consumer configured as the next step after your receiver in the traces pipeline. The next consumer is responsible to receive/consume the traces generated by your receiver. 
+- `consumer.Traces`: the reference to the `consumer.Traces` responsible to pass the traces generated by your receiver to the next consumer/step (most likely a processor or exporter) configured in the traces pipeline.
 
 &nbsp;
 
@@ -538,3 +544,73 @@ func NewFactory() component.ReceiverFactory {
 >- Importing the `go.opentelemetry.io/collector/consumer` package in order to support the `consumer.Traces` type referenced in the `createTracesReceiver` function
 >- Importing the `go.opentelemetry.io/collector/receiver/receiverhelper` package which is where the NewFactory() and the WithTrace() functions are declared.
 >- Updated the `NewFactory()` function so it returns the `component.ReceiverFactory` generated by the `receiverhelper.NewFactory()` call with the required parameters. The generated receiver factory will be capable of processing traces through the call to `receiverhelper.WithTraces(createTracesReceiver)`
+
+&nbsp;
+
+At this point, you have the `tracemock` factory and config code needed for the Collector to validate the `tracemock` receiver settings if they are defined within the `config.yaml`. 
+
+As explained before, all the Collector components are instantiated by the `components()` function within the `components.go` file.
+
+The `tracemock` receiver factory instance has to be added to the `factories` map so the Collector can load it properly as part of it's initialization process.
+
+Here is what the `components.go` file looks like after making the changes to support that:
+
+>components.go
+```go
+// Code generated by "go.opentelemetry.io/collector/cmd/builder". DO NOT EDIT.
+
+package main
+
+import (
+	"go.opentelemetry.io/collector/component"
+	jaegerexporter "github.com/open-telemetry/opentelemetry-collector-contrib/exporter/jaegerexporter"
+	loggingexporter "go.opentelemetry.io/collector/exporter/loggingexporter"
+	batchprocessor "go.opentelemetry.io/collector/processor/batchprocessor"
+	otlpreceiver "go.opentelemetry.io/collector/receiver/otlpreceiver"
+	"dev-otelcol/tracemock"
+)
+
+func components() (component.Factories, error) {
+	var err error
+	factories := component.Factories{}
+
+	factories.Extensions, err = component.MakeExtensionFactoryMap(
+	)
+	if err != nil {
+		return component.Factories{}, err
+	}
+
+	factories.Receivers, err = component.MakeReceiverFactoryMap(
+		otlpreceiver.NewFactory(),
+		tracemock.NewFactory(),
+	)
+	if err != nil {
+		return component.Factories{}, err
+	}
+
+	factories.Exporters, err = component.MakeExporterFactoryMap(
+		jaegerexporter.NewFactory(),
+		loggingexporter.NewFactory(),
+	)
+	if err != nil {
+		return component.Factories{}, err
+	}
+
+	factories.Processors, err = component.MakeProcessorFactoryMap(
+		batchprocessor.NewFactory(),
+	)
+	if err != nil {
+		return component.Factories{}, err
+	}
+
+	return factories, nil
+}
+```
+
+>### Reviewing the code
+>
+>- Importing the `dev-otelcol\tracemock` package which is where the receiver types and function are.
+>- Added a call to `tracemock.NewFactory()` as a parameter of the `component.MakeReceiverFactoryMap()` call so your `tracemock` receiver factory is properly added to the `factories` map.
+
+
+

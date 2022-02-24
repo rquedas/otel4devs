@@ -1,7 +1,7 @@
 receivers:
   tracemock:  
-    interval: 1
-    numberOfTraces: 1
+    interval: 1m
+    number_of_traces: 1
   otlp:
     protocols:
       grpc:

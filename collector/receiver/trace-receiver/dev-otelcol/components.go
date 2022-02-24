@@ -8,6 +8,7 @@ import (
 	loggingexporter "go.opentelemetry.io/collector/exporter/loggingexporter"
 	batchprocessor "go.opentelemetry.io/collector/processor/batchprocessor"
 	otlpreceiver "go.opentelemetry.io/collector/receiver/otlpreceiver"
+	"dev-otelcol/tracemock"
 )
 
 func components() (component.Factories, error) {
@@ -22,6 +23,7 @@ func components() (component.Factories, error) {
 
 	factories.Receivers, err = component.MakeReceiverFactoryMap(
 		otlpreceiver.NewFactory(),
+		tracemock.NewFactory(),
 	)
 	if err != nil {
 		return component.Factories{}, err

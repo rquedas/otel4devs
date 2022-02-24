@@ -2,7 +2,6 @@ package tracemock
 
 import (
 	"context"
-	"time"
 
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/config"
@@ -12,7 +11,7 @@ import (
 
 const (
 	typeStr = "tracemock"
-	defaultInterval = 1 * time.Minute
+	defaultInterval = "1m"
 )
 
 func createDefaultConfig() config.Receiver {
