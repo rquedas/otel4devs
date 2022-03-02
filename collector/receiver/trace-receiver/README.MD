@@ -8,7 +8,7 @@
 
 Although the definition seems very application centric, you can leverage OpenTelemetry traces as a way to represent a request and quickly understand it's duration and the details about every step involved in completing it.
 
-The trace receiver role is to convert the request telemetry from it's original format into the Otel trace format, so the information can be properly processed through the collector's pipelines.
+The trace receiver's role is to convert the request telemetry from it's original format into the Otel trace format, so the information can be properly processed through the collector's pipelines.
 
 In order to implement a traces receiver you will need the following:
 
@@ -21,7 +21,7 @@ In order to implement a traces receiver you will need the following:
 In this tutorial we will create a sample trace receiver called `tracemock` that simulates a pull operation and generates traces as an outcome of that operation. The next sections will guide you through the process of implementing the steps above in order to create the receiver, so let's get started. 
 
 
-### Setting up your receiver development and testing environment
+## Setting up your receiver development and testing environment
 
 First use the tutorial from the [builder](../../builder) folder to create a collector instance named `dev-otelcol`, all you need is to copy the [builder-config.yaml](../../builder/builder-config.yaml) file and make the following changes: 
 
@@ -457,10 +457,12 @@ If you want to take a closer look at `ComponentID` struct and `NewComponentID` f
 
 &nbsp;
 
-### Enabling trace processing for the receiver
+### Enabling the factory to describe the receiver as capable of processing traces
 &nbsp;
 
-The same receiver component can process traces, metrics and logs, but for the `tracemock` receiver, we will be only handling traces. The `receiverhelper` package provides the following function and type to enable trace processing:
+The same receiver component can process traces, metrics and logs, and the receiver's factory is responsible to describe those capabilities. 
+
+Given that Traces are the subject of the tutorial, that's the only datasource we will enable the `tracemock` receiver to work with. The `receiverhelper` package provides the following function and type to help the factory describe the trace processing capabilities:
 
 ```go
 func WithTraces(createTracesReceiver CreateTracesReceiver) FactoryOption
@@ -647,7 +649,7 @@ Look for the log line for "builder/receivers_builder.go:111" (it's the 4th line 
 
 Let's check if the `tracemock` factory is validating the receiver settings correctly, the `interval` setting isn't required, so if you remove it from the `config.yaml` and run the command again you should get the same output.
 
-Now, let's test one of `tracemock` settings validation rules. Remove the `number_of_traces` setting from the `config.yaml`, and here is what the output for running the collector will look like:
+Now, let's test one of the `tracemock` settings validation rules. Remove the `number_of_traces` setting from the `config.yaml`, and here is what the output for running the collector will look like:
 
 ```cmd
 dev-otelcol % ./dev-otelcol --config config.yaml
@@ -657,4 +659,130 @@ Error: invalid configuration: receiver "tracemock" has invalid configuration: nu
 
 &nbsp;
 
+The `tracemock` receiver factory and config requirements are done and the Collector is properly loading your component. You can now move to the core of your receiver, the implementation of the component itself.
 
+&nbsp;
+
+&nbsp;
+
+### Implementing the component.TracesReceiver
+&nbsp;
+
+In the previous section, I mentioned the fact that a receiver can process any of the OTel supported datasources (traces, metrics or log), and the Collector's API is designed to help you accomplish that.
+
+All the receiver API's responsible to enable the datasources are currently declared in the [component/receiver.go](https://github.com/open-telemetry/opentelemetry-collector/blob/main/config/receiver.go) file within the OTel Collector's project in GitHub, open the file and take a minute to browse through all the interfaces declared in it. 
+
+Notice that `component.TracesReceiver` (and it's siblings `MetricsReceiver` and `LogsReceiver`) at this point in time, doesn't describe any specific methods other than the ones it "inherits" from `component.Receiver` which also doesn't describe any specific methods other than the ones it "inherits" from `component.Component`. 
+
+It might feel weird, but remember, the Collector's API was meant to be extensible, and the components and their datasources might evolve in different ways, so the role of those interfaces exist to help support that. 
+
+So, to create a `component.TracesReceiver`, you just need to implement the following methods described by `component.Component` interface:
+
+```go
+Start(ctx context.Context, host Host) error
+Shutdown(ctx context.Context) error
+```
+Both methods actually act as event handlers used by the Collector to communicate with it's components as part of their lifecycle.
+
+The `Start()` represents a signal of the Collector telling the component to start it's processing. As part of the event, the Collector will pass the following information:
+- `context.Context`: Most of the time, a receiver will be processing a long-running operation, so the recommendation is to ignore this context and actually create a new one from context.Background().
+- `Host`:  The host is meant to enable the receiver to communicate with the collector's host once it's up and running.
+
+The `Shutdown()` represents a signal of the Collector telling the component that the service is getting shutdown and as such the component should stop it's processing and make all the necessary cleanup work required:
+- `context.Context`: the context passed by the Collector as part of the shutdown operation.
+
+You will start the implementation by creating a new file called `trace-receiver.go` within your project's `tracemock` folder and add the declaration to a type type called `tracemock` as follow:
+
+```go
+type tracemock struct{
+
+}
+```
+ Now that you have the `tracemock` type you can implement the Start() and Shutdown() methods so the receiver type can be compliant with the `component.TraceReceiver` interface.
+
+Here is what the [tracemock/trace-receiver.go](tracemock/trace-receiver.go) file should look like with the methods implementation:
+
+>trace-receiver.go
+```go
+package tracemock
+
+import (
+	"context"
+	"go.opentelemetry.io/collector/component"
+)
+
+type tracemock struct {
+
+}
+
+func (tracemockRcvr *tracemock) Start(ctx context.Context, host component.Host) error {
+	return nil
+}
+
+func (tracemockRcvr *tracemock) Shutdown(context.Context) error {
+	return nil
+}
+```
+>### Reviewing the code
+>
+>- Importing the `context` package which is where the `Context` type and functions are declared
+>- Importing the `go.opentelemetry.io/collector/component` package which is where the `Host` type is declared
+>- Added a bootstrap implementation of the `Start(ctx context.Context, host component.Host)` method to comply with the `component.TraceReceiver` interface. 
+>- Added a bootstrap implementation of the `Shutdown(ctx context.Context)` method to comply with the `component.TraceReceiver` interface. 
+
+&nbsp;
+
+The `Start()` method is passing 2 references (`context.Context` and `component.Host`) that your receiver might need to keep so they can be used as part of it's processing operations. 
+
+The `context.Context` reference should be used for creating a new context to support you receiver processing operations, and in that case you will need to decide the best way to handle context cancellation so you can finalize it properly as part of the component's shutdown within the `Shutdown()` method.
+
+The `component.Host` might be useful during the whole lifecycle of the receiver so you might want to keep that reference within your `tracemock` type.
+
+Here is what the `tracemock` type declaration will look like after you include the fields for keeping the references suggested above:  
+
+```go
+type tracemock struct {
+  host component.Host
+  cancel context.CancelFunc
+}
+```
+
+&nbsp;
+
+Now you need to update the `Start()` methods so the receiver can properly initialize it's own processing context and have the cancellation function kept in the `cancel` field and also initialize it's `host` field value. You will also update the `Stop()` method in order to finalize the context by calling the `cancel` function.
+
+Here is what the trace-receiver.go file look like after making the changes above:
+
+>trace-receiver.go
+```go
+package tracemock
+
+import (
+	"context"
+	"go.opentelemetry.io/collector/component"
+)
+type tracemock struct {
+    host component.Host
+	cancel context.CancelFunc
+}
+
+func (tracemokRcvr *tracemock) Start(ctx context.Context, host component.Host) error {
+    tracemokRcvr.host = host
+    ctx = context.Background()
+	ctx, tracemokRcvr.cancel = context.WithCancel(ctx)
+	return nil
+}
+
+func (tracemokRcvr *tracemock) Shutdown(ctx context.Context) error {
+	tracemokRcvr.cancel()
+	return nil
+}
+
+````
+>### Reviewing the code
+>- Updated the `Start()` method by adding the initialization to the `host` field with the `component.Host` reference passed by the collector and the `cancel` function field with the cancellation based on a new context created with `context.Background()` (according the Collector's API documentation suggestions).
+>- Updated the `Stop()` method by adding a call to the 'cancel()' context cancellation function.
+
+&nbsp;
+
+Now that you have implemented the `component.TraceReceiver` interface methods, your `tracemock` receiver component is ready to be instantiated and returned by it's factory.
