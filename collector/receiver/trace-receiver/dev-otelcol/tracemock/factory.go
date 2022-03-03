@@ -7,6 +7,7 @@ import (
 	"go.opentelemetry.io/collector/config"
 	"go.opentelemetry.io/collector/consumer"
 	"go.opentelemetry.io/collector/receiver/receiverhelper"
+	"go.opentelemetry.io/collector/component/componenterror"
 )
 
 const (
@@ -22,7 +23,21 @@ func createDefaultConfig() config.Receiver {
 }
 
 func createTracesReceiver(_ context.Context, params component.ReceiverCreateSettings, baseCfg config.Receiver, consumer consumer.Traces) (component.TracesReceiver, error) {
-  return nil,nil
+	if consumer == nil {
+		return nil, componenterror.ErrNilNextConsumer
+	}
+	
+	logger := params.Logger
+	tracemockCfg := baseCfg.(*Config)
+
+	traceRcvr := &tracemockReceiver{
+		logger:       logger,
+		nextConsumer: consumer,
+		config:       tracemockCfg,
+	}
+	
+	return traceRcvr, nil
+
 }
 
 // NewFactory creates a factory for tracemock receiver.

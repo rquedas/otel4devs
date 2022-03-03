@@ -20,6 +20,6 @@ exporters:
 service:
   pipelines:
     traces:
-      receivers: [otlp]
+      receivers: [otlp, tracemock]
       processors: []
       exporters: [jaeger, logging]

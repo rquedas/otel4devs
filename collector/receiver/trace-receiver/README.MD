@@ -122,7 +122,7 @@ dev-otelcol % ./dev-otelcol --config config.yaml
 2022-02-01T09:29:36.219-0600    info    service/collector.go:239        Starting dev-otelcol... {"Version": "1.0.0", "NumCPU": 12}
 2022-02-01T09:29:36.219-0600    info    service/collector.go:135        Everything is ready. Begin running and processing data.
 2022-02-01T09:29:37.208-0600    info    jaegerexporter@v0.41.0/exporter.go:186  State of the connection with the Jaeger Collector backend     {"kind": "exporter", "name": "jaeger", "state": "READY"}
-````
+```
 
 &nbsp;
 
@@ -133,7 +133,7 @@ First create a folder called `tracemock` under the dev-otelcol so it will host a
 ```cmd
 cd dev-otelcol
 mkdir tracemock
-````
+```
 
 &nbsp;
 
@@ -154,7 +154,7 @@ receivers:
   tracemock: #this line represents the ID of your receiver
     interval: 1m
     number_of_traces: 1
-````
+```
 
 &nbsp;
 
@@ -387,7 +387,7 @@ const (
 	typeStr = "tracemock"
 	defaultInterval = 1 * time.Minute
 )
-````
+```
 
 &nbsp;
 
@@ -503,7 +503,7 @@ func NewFactory() component.ReceiverFactory {
 		createDefaultConfig,
 		receiverhelper.WithTraces(createTracesReceiver))
 }
-````
+```
 &nbsp;
 
 After these two changes you will notice a few imports are missing, so here is what your `factory.go` file should look like with the proper imports:
@@ -655,7 +655,7 @@ Now, let's test one of the `tracemock` settings validation rules. Remove the `nu
 dev-otelcol % ./dev-otelcol --config config.yaml
 Error: invalid configuration: receiver "tracemock" has invalid configuration: number_of_traces must be at least 1
 2022/02/24 13:00:20 collector server run finished with error: invalid configuration: receiver "tracemock" has invalid configuration: number_of_traces must be at least 1
-````
+```
 
 &nbsp;
 
@@ -665,7 +665,7 @@ The `tracemock` receiver factory and config requirements are done and the Collec
 
 &nbsp;
 
-### Implementing the component.TracesReceiver
+## Implementing the trace receiver component
 &nbsp;
 
 In the previous section, I mentioned the fact that a receiver can process any of the OTel supported datasources (traces, metrics or log), and the Collector's API is designed to help you accomplish that.
@@ -691,14 +691,14 @@ The `Start()` represents a signal of the Collector telling the component to star
 The `Shutdown()` represents a signal of the Collector telling the component that the service is getting shutdown and as such the component should stop it's processing and make all the necessary cleanup work required:
 - `context.Context`: the context passed by the Collector as part of the shutdown operation.
 
-You will start the implementation by creating a new file called `trace-receiver.go` within your project's `tracemock` folder and add the declaration to a type type called `tracemock` as follow:
+You will start the implementation by creating a new file called `trace-receiver.go` within your project's `tracemock` folder and add the declaration to a type type called `tracemockReceiver` as follow:
 
 ```go
-type tracemock struct{
+type tracemockReceiver struct{
 
 }
 ```
- Now that you have the `tracemock` type you can implement the Start() and Shutdown() methods so the receiver type can be compliant with the `component.TraceReceiver` interface.
+ Now that you have the `tracemockReceiver` type you can implement the Start() and Shutdown() methods so the receiver type can be compliant with the `component.TraceReceiver` interface.
 
 Here is what the [tracemock/trace-receiver.go](tracemock/trace-receiver.go) file should look like with the methods implementation:
 
@@ -711,15 +711,15 @@ import (
 	"go.opentelemetry.io/collector/component"
 )
 
-type tracemock struct {
+type tracemockReceiver struct {
 
 }
 
-func (tracemockRcvr *tracemock) Start(ctx context.Context, host component.Host) error {
+func (tracemockRcvr *tracemockReceiver) Start(ctx context.Context, host component.Host) error {
 	return nil
 }
 
-func (tracemockRcvr *tracemock) Shutdown(context.Context) error {
+func (tracemockRcvr *tracemockReceiver) Shutdown(context.Context) error {
 	return nil
 }
 ```
@@ -736,12 +736,12 @@ The `Start()` method is passing 2 references (`context.Context` and `component.H
 
 The `context.Context` reference should be used for creating a new context to support you receiver processing operations, and in that case you will need to decide the best way to handle context cancellation so you can finalize it properly as part of the component's shutdown within the `Shutdown()` method.
 
-The `component.Host` might be useful during the whole lifecycle of the receiver so you might want to keep that reference within your `tracemock` type.
+The `component.Host` might be useful during the whole lifecycle of the receiver so you might want to keep that reference within your `tracemockReceiver` type.
 
-Here is what the `tracemock` type declaration will look like after you include the fields for keeping the references suggested above:  
+Here is what the `tracemockReceiver` type declaration will look like after you include the fields for keeping the references suggested above:  
 
 ```go
-type tracemock struct {
+type tracemockReceiver struct {
   host component.Host
   cancel context.CancelFunc
 }
@@ -751,7 +751,7 @@ type tracemock struct {
 
 Now you need to update the `Start()` methods so the receiver can properly initialize it's own processing context and have the cancellation function kept in the `cancel` field and also initialize it's `host` field value. You will also update the `Stop()` method in order to finalize the context by calling the `cancel` function.
 
-Here is what the trace-receiver.go file look like after making the changes above:
+Here is what the `trace-receiver.go` file look like after making the changes above:
 
 >trace-receiver.go
 ```go
@@ -761,28 +761,228 @@ import (
 	"context"
 	"go.opentelemetry.io/collector/component"
 )
-type tracemock struct {
+
+type tracemockReceiver struct {
     host component.Host
 	cancel context.CancelFunc
 }
 
-func (tracemokRcvr *tracemock) Start(ctx context.Context, host component.Host) error {
+func (tracemokRcvr *tracemockReceiver) Start(ctx context.Context, host component.Host) error {
     tracemokRcvr.host = host
     ctx = context.Background()
 	ctx, tracemokRcvr.cancel = context.WithCancel(ctx)
 	return nil
 }
 
-func (tracemokRcvr *tracemock) Shutdown(ctx context.Context) error {
+func (tracemokRcvr *tracemockReceiver) Shutdown(ctx context.Context) error {
 	tracemokRcvr.cancel()
 	return nil
 }
 
-````
+```
 >### Reviewing the code
 >- Updated the `Start()` method by adding the initialization to the `host` field with the `component.Host` reference passed by the collector and the `cancel` function field with the cancellation based on a new context created with `context.Background()` (according the Collector's API documentation suggestions).
->- Updated the `Stop()` method by adding a call to the 'cancel()' context cancellation function.
+>- Updated the `Stop()` method by adding a call to the `cancel()` context cancellation function.
 
 &nbsp;
 
+&nbsp;
+
+### Keeping information passed by the receiver's factory
+&nbsp;
+
 Now that you have implemented the `component.TraceReceiver` interface methods, your `tracemock` receiver component is ready to be instantiated and returned by it's factory.
+
+Open the [factory.go](dev-otelcol/tracemock/factory.go#L24) file and navigate to the `createTracesReceiver()` function. Notice that the factory will pass references as part of the `createTracesReceiver()` function parameters that your receiver actually requires to work properly like it's configuration settings (`config.Receiver`), the next `Consumer` in the pipeline that will consume the generated traces (`consumer.Traces`) and the Collector's logger so the `tracemock` receiver can add meaningful events to it (`component.ReceiverCreateSettings`).
+
+Given that all this information will be only  made available to the receiver at the moment it's instantiated by the factory, The `tracemockReceiver` type will need fields to keep that information and use it within other stages of it's lifecycle.
+
+Here is what the `trace-receiver.go` file looks like with the updated `tracemockReceiver` type declaration:
+
+>trace-receiver.go
+```go
+package tracemock
+
+import (
+	"context"
+	"go.opentelemetry.io/collector/component"
+	"go.opentelemetry.io/collector/consumer"
+	"go.uber.org/zap"
+	
+)
+
+type tracemockReceiver struct {
+    host         component.Host
+	cancel       context.CancelFunc
+	logger       *zap.Logger
+	nextConsumer consumer.Traces
+	config       *Config
+}
+
+func (tracemokRcvr *tracemockReceiver) Start(ctx context.Context, host component.Host) error {
+    tracemokRcvr.host = host
+    ctx = context.Background()
+	ctx, tracemokRcvr.cancel = context.WithCancel(ctx)
+
+	return nil
+}
+
+func (tracemokRcvr *tracemockReceiver) Shutdown(ctx context.Context) error {
+	tracemokRcvr.cancel()
+	return nil
+}
+
+```
+
+>### Reviewing the code
+>- Importing the `go.opentelemetry.io/collector/consumer` which is where the pipeline's consumer types and interfaces are declared.
+>- Importing the `go.uber.org/zap` package, which is what the Collector uses for it's logging capabilities.
+>- Added a `zap.Logger` field named `logger` so we can have access to the collector's logger reference from within the receiver.
+>- Added a `consumer.Traces` field named `nextConsumer` so we can push the traces generated by the `tracemock` receiver to the next consumer declared in the collector's pipeline.
+>- Added a `Config` field named `config` so we can have access to receiver's configuration settings defined within the collector's config.
+
+&nbsp;
+
+The `tracemockReceiver` type is now ready to be instantiated and keep all  meaningful information passed by it's factory.
+
+Open the [factory.go](dev-otelcol/tracemock/factory.go#L24) file and navigate to the `createTracesReceiver()` function. 
+
+The receiver is only instantiated if it's declared as a component within a pipeline and the factory is responsible to make sure the next consumer (either a processor or exporter) in the pipeline is valid otherwise it should generate an error. 
+
+The collector's api provides a package with helper functions for component error handling called `go.opentelemetry.io/collector/component/componenterror`, if you open the [error.go](https://github.com/open-telemetry/opentelemetry-collector/blob/main/component/componenterror/errors.go) you will find the `ErrNilNextConsumer` error, which is what your receiver factory should throw in case the next consumer has an issue and is passed as nil.
+
+The `createTracesReceiver()` function will need a guard clause to make that validation.
+
+You will also need variables to properly initialize the `config` and the `logger` fields of the `tracemockReceiver` instance.
+
+Here is what the `factory.go` file looks like with the updated `createTracesReceiver()` function:
+
+>factory.go
+```go
+package tracemock
+
+import (
+	"context"
+
+	"go.opentelemetry.io/collector/component"
+	"go.opentelemetry.io/collector/config"
+	"go.opentelemetry.io/collector/consumer"
+	"go.opentelemetry.io/collector/receiver/receiverhelper"
+	"go.opentelemetry.io/collector/component/componenterror"
+)
+
+const (
+	typeStr = "tracemock"
+	defaultInterval = "1m"
+)
+
+func createDefaultConfig() config.Receiver {
+	return &Config{
+		ReceiverSettings:   config.NewReceiverSettings(config.NewComponentID(typeStr)),
+		Interval: defaultInterval,
+	}
+}
+
+func createTracesReceiver(_ context.Context, params component.ReceiverCreateSettings, baseCfg config.Receiver, consumer consumer.Traces) (component.TracesReceiver, error) {
+	if consumer == nil {
+		return nil, componenterror.ErrNilNextConsumer
+	}
+	
+	logger := params.Logger
+	tracemockCfg := baseCfg.(*Config)
+
+	traceRcvr := &tracemockReceiver{
+		logger:       logger,
+		nextConsumer: consumer,
+		config:       tracemockCfg,
+	}
+	
+	return traceRcvr, nil
+
+}
+
+// NewFactory creates a factory for tracemock receiver.
+func NewFactory() component.ReceiverFactory {
+	return receiverhelper.NewFactory(
+		typeStr,
+		createDefaultConfig,
+		receiverhelper.WithTraces(createTracesReceiver))
+}
+```
+>### Reviewing the code
+>- Importing the `go.opentelemetry.io/collector/component/componenterror` which is where the component errors are declared.
+>- Added a variable called `logger` and initialized it with the collector's logger that is available as a field named `Logger` within the `component.ReceiverCreateSettings` reference.
+>- Added a variable called `tracemockCfg` and initialized it by casting the `config.Receiver` reference to the `tracemock` receiver `Config`.
+>- Added a variable called `traceRcvr` and initialized it with the `tracemockReceiver` instance using the factory information stored within the variables.
+>- Updated the return statement to now include the `traceRcvr` instance.
+
+&nbsp;
+
+With the factory fully implemented and instantiating the trace receiver component you are ready to test the receiver as part of a pipeline. Go ahead and add the `tracemock` receiver to your `traces` pipeline in the `config.yaml` as follow:
+
+```yaml
+service:
+  pipelines:
+    traces:
+      receivers: [otlp, tracemock]
+      processors: []
+      exporters: [jaeger, logging]
+```
+
+&nbsp;
+
+Here is what the output for running your collector with `dev-otelcol` command should look like after you updated the `traces` pipeline: 
+
+```cmd
+dev-otelcol % ./dev-otelcol --config config.yaml
+2022-03-03T11:19:50.779-0600    info    service/collector.go:190        Applying configuration...
+2022-03-03T11:19:50.780-0600    info    builder/exporters_builder.go:254        Exporter was built.     {"kind": "exporter", "name": "jaeger"}
+2022-03-03T11:19:50.780-0600    info    builder/exporters_builder.go:254        Exporter was built.     {"kind": "exporter", "name": "logging"}
+2022-03-03T11:19:50.780-0600    info    builder/pipelines_builder.go:222        Pipeline was built.     {"name": "pipeline", "name": "traces"}
+2022-03-03T11:19:50.780-0600    info    builder/receivers_builder.go:224        Receiver was built.     {"kind": "receiver", "name": "otlp", "datatype": "traces"}
+2022-03-03T11:19:50.780-0600    info    builder/receivers_builder.go:224        Receiver was built.     {"kind": "receiver", "name": "tracemock", "datatype": "traces"}
+2022-03-03T11:19:50.780-0600    info    service/service.go:86   Starting extensions...
+2022-03-03T11:19:50.780-0600    info    service/service.go:91   Starting exporters...
+2022-03-03T11:19:50.780-0600    info    builder/exporters_builder.go:40 Exporter is starting... {"kind": "exporter", "name": "jaeger"}
+2022-03-03T11:19:50.781-0600    info    builder/exporters_builder.go:48 Exporter started.       {"kind": "exporter", "name": "jaeger"}
+2022-03-03T11:19:50.781-0600    info    jaegerexporter@v0.41.0/exporter.go:186  State of the connection with the Jaeger Collector backend       {"kind": "exporter", "name": "jaeger", "state": "IDLE"}
+2022-03-03T11:19:50.781-0600    info    builder/exporters_builder.go:40 Exporter is starting... {"kind": "exporter", "name": "logging"}
+2022-03-03T11:19:50.781-0600    info    builder/exporters_builder.go:48 Exporter started.       {"kind": "exporter", "name": "logging"}
+2022-03-03T11:19:50.781-0600    info    service/service.go:96   Starting processors...
+2022-03-03T11:19:50.781-0600    info    builder/pipelines_builder.go:54 Pipeline is starting... {"name": "pipeline", "name": "traces"}
+2022-03-03T11:19:50.781-0600    info    builder/pipelines_builder.go:65 Pipeline is started.    {"name": "pipeline", "name": "traces"}
+2022-03-03T11:19:50.781-0600    info    service/service.go:101  Starting receivers...
+2022-03-03T11:19:50.781-0600    info    builder/receivers_builder.go:68 Receiver is starting... {"kind": "receiver", "name": "otlp"}
+2022-03-03T11:19:50.781-0600    info    otlpreceiver/otlp.go:69 Starting GRPC server on endpoint localhost:55680        {"kind": "receiver", "name": "otlp"}
+2022-03-03T11:19:50.783-0600    info    builder/receivers_builder.go:73 Receiver started.       {"kind": "receiver", "name": "otlp"}
+2022-03-03T11:19:50.783-0600    info    builder/receivers_builder.go:68 Receiver is starting... {"kind": "receiver", "name": "tracemock"}
+2022-03-03T11:19:50.783-0600    info    tracemock/trace-receiver.go:23  I should start processing traces now!   {"kind": "receiver", "name": "tracemock"}
+2022-03-03T11:19:50.783-0600    info    builder/receivers_builder.go:73 Receiver started.       {"kind": "receiver", "name": "tracemock"}
+2022-03-03T11:19:50.783-0600    info    service/telemetry.go:92 Setting up own telemetry...
+2022-03-03T11:19:50.788-0600    info    service/telemetry.go:116        Serving Prometheus metrics      {"address": ":8888", "level": "basic", "service.instance.id": "0ca4907c-6fda-4fe1-b0e9-b73d789354a4", "service.version": "latest"}
+2022-03-03T11:19:50.788-0600    info    service/collector.go:239        Starting dev-otelcol... {"Version": "1.0.0", "NumCPU": 12}
+2022-03-03T11:19:50.788-0600    info    service/collector.go:135        Everything is ready. Begin running and processing data.
+```
+
+&nbsp;
+
+Look for the log line for "builder/receivers_builder.go:68 Receiver is starting... {"kind": "receiver", "name": "tracemock"}", you can see that the Collector found the settings for the `tracemock` receiver within the `traces` pipeline and is now instantiating it and starting it given that next line present the info line we added to the `Start()` method.
+
+Now, go ahead and press `ctrl+c` in your collector's terminal so you want watch the shutdown process happening. Here is what the output should look like:
+
+```cmd
+^C2022-03-03T11:20:14.652-0600  info    service/collector.go:166        Received signal from OS {"signal": "interrupt"}
+2022-03-03T11:20:14.652-0600    info    service/collector.go:255        Starting shutdown...
+2022-03-03T11:20:14.652-0600    info    service/service.go:121  Stopping receivers...
+2022-03-03T11:20:14.653-0600    info    tracemock/trace-receiver.go:29  I am done and ready to shutdown!        {"kind": "receiver", "name": "tracemock"}
+2022-03-03T11:20:14.653-0600    info    service/service.go:126  Stopping processors...
+2022-03-03T11:20:14.653-0600    info    builder/pipelines_builder.go:73 Pipeline is shutting down...    {"name": "pipeline", "name": "traces"}
+2022-03-03T11:20:14.653-0600    info    builder/pipelines_builder.go:77 Pipeline is shutdown.   {"name": "pipeline", "name": "traces"}
+2022-03-03T11:20:14.653-0600    info    service/service.go:131  Stopping exporters...
+2022-03-03T11:20:14.653-0600    info    service/service.go:136  Stopping extensions...
+2022-03-03T11:20:14.653-0600    info    service/collector.go:273        Shutdown complete.
+```
+&nbsp;
+
+As you can see there is an info log line for the `tracemock` receiver which means the component is responding correctly to the `Shutdown()` event.
+In the next section you will learn more about the OTel Trace data model so the `tracemock` receiver can finally generate traces!
