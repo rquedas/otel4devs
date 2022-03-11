@@ -5,6 +5,8 @@ import (
 
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/consumer"
+	"go.opentelemetry.io/collector/model/pdata"
+	conventions "go.opentelemetry.io/collector/model/semconv/v1.5.0"
 	"go.uber.org/zap"
 )
 
@@ -29,3 +31,5 @@ func (tracemokRcvr *tracemockReceiver) Shutdown(ctx context.Context) error {
 	tracemokRcvr.logger.Info("I am done and ready to shutdown!")
 	return nil
 }
+
+
