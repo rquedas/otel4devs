@@ -26,21 +26,30 @@ type BackendSystem struct{
 }
 
 func generateAtm() Atm{
-	newAtm := Atm{
-		ID: 111,
-		Name: "ATM-111-IL",
-		SerialNumber: "atmxph-2022-111",
-		Version: "v1.0",
-	}
 	i := getRandomNumber(1, 2)
+    var newAtm Atm
 
 	switch i {
-	case 1:
-		newAtm.ISPNetwork = "comcast-sanfrancisco"
-		newAtm.StateID = "CA"
-	case 2:
-		newAtm.ISPNetwork = "comcast-chicago"
-		newAtm.StateID = "IL" 
+		case 1:
+			newAtm = Atm{
+				ID: 111,
+				Name: "ATM-111-IL",
+				SerialNumber: "atmxph-2022-111",
+				Version: "v1.0",
+				ISPNetwork: "comcast-chicago",
+				StateID: "IL",
+		
+			}
+		
+		case 2:
+			newAtm = Atm{
+				ID: 222,
+				Name: "ATM-222-CA",
+				SerialNumber: "atmxph-2022-222",
+				Version: "v1.0",
+				ISPNetwork: "comcast-sanfrancisco",
+				StateID: "CA",
+			}
 	}
 
 	return newAtm
@@ -80,8 +89,17 @@ func generateTraces() pdata.Traces{
 
 	resourceSpan := traces.ResourceSpans().AppendEmpty()
 	atmResource := resourceSpan.Resource()
+	fillResourceWithAtm(&atmResource, newAtm)
 
 	return traces
+}
+
+func fillResourceWithAtm(resource *pdata.Resource, atm Atm){
+   atmAttrs := resource.Attributes()
+   atmAttrs.InsertInt("atm.id", atm.ID)
+   atmAttrs.InsertString("atm.stateid", atm.StateID)
+   atmAttrs.InsertString("atm.ispnetwork", atm.ISPNetwork)
+   atmAttrs.InsertString("atm.serialnumber", atm.SerialNumber)
 }
 
 
