@@ -64,7 +64,7 @@ func generateBackendSystem() BackendSystem{
 		Version: "v2.5",
 		OSType: "lnx",
 		OSVersion: "4.16.10-300.fc28.x86_64",
-		CloudProvider: "amazon",
+		CloudProvider: "amzn",
 		CloudRegion: "us-east-2",
 	}
 
@@ -96,6 +96,10 @@ func generateTraces() pdata.Traces{
 	atmResource := resourceSpan.Resource()
 	fillResourceWithAtm(&atmResource, newAtm)
 
+	resourceSpan = traces.ResourceSpans().AppendEmpty()
+	backendResource := resourceSpan.Resource()
+	fillResourceWithBackendSystem(&backendResource, newBackendSystem)
+
 	return traces
 }
 
@@ -105,6 +109,9 @@ func fillResourceWithAtm(resource *pdata.Resource, atm Atm){
    atmAttrs.InsertString("atm.stateid", atm.StateID)
    atmAttrs.InsertString("atm.ispnetwork", atm.ISPNetwork)
    atmAttrs.InsertString("atm.serialnumber", atm.SerialNumber)
+   atmAttrs.InsertString(conventions.AttributeServiceName, atm.Name)
+   atmAttrs.InsertString(conventions.AttributeServiceVersion, atm.Version)
+
 }
 
 
@@ -135,6 +142,9 @@ func fillResourceWithBackendSystem(resource *pdata.Resource, backend BackendSyst
 	
 	backendAttrs.InsertString(conventions.AttributeOSType, osType)
 	backendAttrs.InsertString(conventions.AttributeOSVersion, backend.OSVersion)
+
+	backendAttrs.InsertString(conventions.AttributeServiceName, backend.ProcessName)
+	backendAttrs.InsertString(conventions.AttributeServiceVersion, backend.Version)
 
  }
 

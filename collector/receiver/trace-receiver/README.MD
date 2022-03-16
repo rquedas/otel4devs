@@ -1180,7 +1180,7 @@ You will start with a type called `pdata.ResourceSpans` which represents the res
 
 `pdata.Traces` has a method named `ResourceSpans()` which returns an instance of a helper type called `pdata.ResourceSpansSlice`. The `pdata.ResourceSpansSlice` type has methods to help you handle the array of `pdata.ResourceSpans` that will contain as many items as the number of `Resource` entities participating in the request represented by the trace.
 
-`pdata.ResourceSpansSlice` has a method named `AppendEmpty()` that adds a new `ResourceSpan` to the array and return it's reference.
+`pdata.ResourceSpansSlice` has a method named `AppendEmpty()` that adds a new `pdata.ResourceSpan` to the array and return it's reference.
 
 Once you have an instance of a  `pdata.ResourceSpan` you will use a method named `Resource()` which will return the instance of the `Resource` associated with the `ResourceSpan`.
 
@@ -1281,8 +1281,176 @@ func fillResourceWithBackendSystem(resource *pdata.Resource, backend BackendSyst
 	backendAttrs.InsertString(conventions.AttributeOSVersion, backend.OSVersion)
  }
 ```
+&nbsp;
 
 Notice that I didn't add an attribute named "atm.name" or "backendsystem.name" to the `Resource` representing the `Atm` and `BackendSystem` entity names, that's because most (not to say all) distributed tracing backend systems that are compatible with the OTel trace specification, interpret the `Resource` described in a trace as a `Service`, therefore they expect the `Resource` to carry a required attribute named `service.name` as prescribed by the resource semantic convention. 
+
+We will also use non-required attribute named `service.version` to represent the version information for both `Atm` and `BackendSystem` entities.
+
+Here is what the [tracemock/model.go](dev-otelcol/tracemock/model.go) file looks like after adding the code for properly assign the "service." group attributes:
+
+>model.go
+```go
+package tracemock
+
+import (
+	"go.opentelemetry.io/collector/model/pdata"
+	"math/rand"
+	"time"
+	conventions "go.opentelemetry.io/collector/model/semconv/v1.8.0"
+)
+
+type Atm struct{
+    ID           int64
+	Version      string
+	Name         string
+	StateID      string
+	SerialNumber string
+	ISPNetwork   string
+}
+
+type BackendSystem struct{
+	Version       string
+	ProcessName   string
+	OSType        string
+    OSVersion     string
+	CloudProvider string
+	CloudRegion   string	
+	Endpoint      string
+}
+
+func generateAtm() Atm{
+	i := getRandomNumber(1, 2)
+    var newAtm Atm
+
+	switch i {
+		case 1:
+			newAtm = Atm{
+				ID: 111,
+				Name: "ATM-111-IL",
+				SerialNumber: "atmxph-2022-111",
+				Version: "v1.0",
+				ISPNetwork: "comcast-chicago",
+				StateID: "IL",
+		
+			}
+		
+		case 2:
+			newAtm = Atm{
+				ID: 222,
+				Name: "ATM-222-CA",
+				SerialNumber: "atmxph-2022-222",
+				Version: "v1.0",
+				ISPNetwork: "comcast-sanfrancisco",
+				StateID: "CA",
+			}
+	}
+
+	return newAtm
+}
+
+func generateBackendSystem() BackendSystem{
+    i := getRandomNumber(1, 3)
+
+	newBackend := BackendSystem{
+    	ProcessName: "accounts",
+		Version: "v2.5",
+		OSType: "lnx",
+		OSVersion: "4.16.10-300.fc28.x86_64",
+		CloudProvider: "amzn",
+		CloudRegion: "us-east-2",
+	}
+
+	switch i {
+		case 1:
+		 	newBackend.Endpoint = "accounts/api/v2.5/balance"
+		case 2:
+		  	newBackend.Endpoint = "accounts/api/v2.5/deposit"
+		case 3:
+			newBackend.Endpoint = "accounts/api/v2.5/withdrawn"
+
+	}
+
+	return newBackend
+}
+
+func getRandomNumber(min int, max int) int {
+	rand.Seed(time.Now().UnixNano())
+	i := (rand.Intn(max - min + 1) + min)
+    return i	
+} 
+
+func generateTraces() pdata.Traces{
+	traces := pdata.NewTraces()
+	newAtm := generateAtm()
+	newBackendSystem := generateBackendSystem()
+
+	resourceSpan := traces.ResourceSpans().AppendEmpty()
+	atmResource := resourceSpan.Resource()
+	fillResourceWithAtm(&atmResource, newAtm)
+
+	resourceSpan = traces.ResourceSpans().AppendEmpty()
+	backendResource := resourceSpan.Resource()
+	fillResourceWithBackendSystem(&backendResource, newBackendSystem)
+
+	return traces
+}
+
+func fillResourceWithAtm(resource *pdata.Resource, atm Atm){
+   atmAttrs := resource.Attributes()
+   atmAttrs.InsertInt("atm.id", atm.ID)
+   atmAttrs.InsertString("atm.stateid", atm.StateID)
+   atmAttrs.InsertString("atm.ispnetwork", atm.ISPNetwork)
+   atmAttrs.InsertString("atm.serialnumber", atm.SerialNumber)
+   atmAttrs.InsertString(conventions.AttributeServiceName, atm.Name)
+   atmAttrs.InsertString(conventions.AttributeServiceVersion, atm.Version)
+
+}
+
+
+func fillResourceWithBackendSystem(resource *pdata.Resource, backend BackendSystem){
+	backendAttrs := resource.Attributes()
+	var osType, cloudProvider string
+
+	switch {
+		case backend.CloudProvider == "amzn":
+			cloudProvider = conventions.AttributeCloudProviderAWS
+		case backend.OSType == "mcrsft":
+			cloudProvider = conventions.AttributeCloudProviderAzure
+		case backend.OSType == "gogl":
+			cloudProvider = conventions.AttributeCloudProviderGCP		
+	}
+
+	backendAttrs.InsertString(conventions.AttributeCloudProvider, cloudProvider)
+	backendAttrs.InsertString(conventions.AttributeCloudRegion, backend.CloudRegion)
+	
+	switch {
+		case backend.OSType == "lnx":
+			osType = conventions.AttributeOSTypeLinux
+		case backend.OSType == "wndws":
+			osType = conventions.AttributeOSTypeWindows
+		case backend.OSType == "slrs":
+			osType = conventions.AttributeOSTypeSolaris			
+	}
+	
+	backendAttrs.InsertString(conventions.AttributeOSType, osType)
+	backendAttrs.InsertString(conventions.AttributeOSVersion, backend.OSVersion)
+
+	backendAttrs.InsertString(conventions.AttributeServiceName, backend.ProcessName)
+	backendAttrs.InsertString(conventions.AttributeServiceVersion, backend.Version)
+
+ }
+```
+>### Reviewing the code
+>
+>- Imported the `go.opentelemetry.io/collector/model/semconv/v1.8.0` package as `conventions`, in order to have access to all resource semantic conventions attribute names and values.
+>- Updated the `fillResourceWithAtm()` function  by adding lines to properly assign the "service.name" and "service.version" attributes to the `Resource` representing the `Atm` entity
+>- Updated the `fillResourceWithBackendSystem()` function  by adding lines to properly assign the "service.name" and "service.version" attributes to the `Resource` representing the `BackendSystem` entity
+>- Updated the `generateTraces()` function  by adding lines to properly instantiate a `Resource` and fill in the attribute information for both `Atm` and `BackendSystem` entities using the `fillResourceWithAtm()` and `fillResourceWithBackendSystem()` functions
+
+Now that you have `Resource` instances properly filled with attributes to represent the `Atm` and `BackendSystem` entities, you are ready to represent the operations that each `Resource` execute as part of a trace.
+
+### Representing operations with spans
 
 
 

@@ -32,7 +32,7 @@ func main(){
 		log.Fatal("failed to construct the application: %w", err)
 	}
 
-	err = collectorApp.Run(context.TODO())
+	err = collectorApp.Run(context.Background())
 	if err != nil {
 		log.Fatal("application run finished with error: %w", err)
 	}
