@@ -164,7 +164,7 @@ As of v0.41.0 of the Collector codebase, the `configmapprovider` package provide
 func NewFile(fileName string) Provider 
 func NewInMemory(buf io.Reader) Provider
 func NewProperties(properties []string) Provider 
-````
+```
 
 Thanks to these functions, you can easily easily have a Provider to read the Collector's configurations from a .yaml file, key/value properties or in-memory.
 
@@ -251,7 +251,8 @@ func main(){
 		log.Fatal("failed to construct the application: %w", err)
 	}
 }
-````
+```
+
 >### Reviewing the code
 >
 >- I imported the `go.opentelemetry.io/collector/service` package, so I can have access to the functions to instantiate and run a Collector.
@@ -314,7 +315,8 @@ func main(){
 		log.Fatal("application run finished with error: %w", err)
 	}
 }
-````
+```
+
 >### Reviewing the code
 >
 >- I added a line to call `collectorApp.Run` with a `TODO context` and the necessary error handling code below it.
