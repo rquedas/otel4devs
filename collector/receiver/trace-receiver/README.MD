@@ -1120,6 +1120,10 @@ func generateBackendSystem() BackendSystem{
 	newBackend := BackendSystem{
     	ProcessName: "accounts",
 		Version: "v2.5",
+		OSType: "lnx",
+		OSVersion: "4.16.10-300.fc28.x86_64",
+		CloudProvider: "amzn",
+		CloudRegion: "us-east-2",
 	}
 
 	switch i {
@@ -1238,7 +1242,55 @@ func fillResourceWithAtm(resource *pdata.Resource, atm Atm){
 
 &nbsp;
 
+The resource semantic conventions also have prescriptive attribute names and well-known values to represent telemetry generation entities that are common and applicable across different domains like [compute unit](https://github.com/open-telemetry/opentelemetry-specification/blob/main/specification/resource/semantic_conventions/README.md#compute-unit), [environment](https://github.com/open-telemetry/opentelemetry-specification/blob/main/specification/resource/semantic_conventions/README.md#environment) and others.
+
+So, when you look at the `BackendSystem` entity, it has fields representing [OS](https://github.com/open-telemetry/opentelemetry-specification/blob/main/specification/resource/semantic_conventions/os.md) related information and [Cloud](https://github.com/open-telemetry/opentelemetry-specification/blob/main/specification/resource/semantic_conventions/cloud.md) related information, and we will use the attribute names and values prescribed by the resource semantic convention to represent that information on it's `Resource`.
+
+All the resource semantic convention attribute names and well known-values are kept within the [model/semconv/v1.8.0/resource.go](https://github.com/open-telemetry/opentelemetry-collector/blob/main/model/semconv/v1.8.0/resource.go) file within the Collector's GitHub project.
 
 
-[attributes covered by semantics](https://github.com/open-telemetry/opentelemetry-collector/blob/main/model/semconv/v1.8.0/resource.go)
+Let's create a function to read the field values from an `BackendSystem` instance and write them as attributes  into a `Resource` instance. Open the [tracemock/model.go](dev-otelcol/tracemock/model.go) file and add the following function:
+
+```go
+func fillResourceWithBackendSystem(resource *pdata.Resource, backend BackendSystem){
+	backendAttrs := resource.Attributes()
+	var osType, cloudProvider string
+
+	switch {
+		case backend.CloudProvider == "amzn":
+			cloudProvider = conventions.AttributeCloudProviderAWS
+		case backend.OSType == "mcrsft":
+			cloudProvider = conventions.AttributeCloudProviderAzure
+		case backend.OSType == "gogl":
+			cloudProvider = conventions.AttributeCloudProviderGCP		
+	}
+
+	backendAttrs.InsertString(conventions.AttributeCloudProvider, cloudProvider)
+	backendAttrs.InsertString(conventions.AttributeCloudRegion, backend.CloudRegion)
+	
+	switch {
+		case backend.OSType == "lnx":
+			osType = conventions.AttributeOSTypeLinux
+		case backend.OSType == "wndws":
+			osType = conventions.AttributeOSTypeWindows
+		case backend.OSType == "slrs":
+			osType = conventions.AttributeOSTypeSolaris			
+	}
+	
+	backendAttrs.InsertString(conventions.AttributeOSType, osType)
+	backendAttrs.InsertString(conventions.AttributeOSVersion, backend.OSVersion)
+ }
+```
+
+Notice that I didn't add an attribute named "atm.name" or "backendsystem.name" to the `Resource` representing the `Atm` and `BackendSystem` entity names, that's because most (not to say all) distributed tracing backend systems that are compatible with the OTel trace specification, interpret the `Resource` described in a trace as a `Service`, therefore they expect the `Resource` to carry a required attribute named `service.name` as prescribed by the resource semantic convention. 
+
+
+
+
+
+
+
+
+
+
 

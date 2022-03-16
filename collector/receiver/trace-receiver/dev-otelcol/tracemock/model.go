@@ -4,6 +4,7 @@ import (
 	"go.opentelemetry.io/collector/model/pdata"
 	"math/rand"
 	"time"
+	conventions "go.opentelemetry.io/collector/model/semconv/v1.8.0"
 )
 
 type Atm struct{
@@ -61,6 +62,10 @@ func generateBackendSystem() BackendSystem{
 	newBackend := BackendSystem{
     	ProcessName: "accounts",
 		Version: "v2.5",
+		OSType: "lnx",
+		OSVersion: "4.16.10-300.fc28.x86_64",
+		CloudProvider: "amazon",
+		CloudRegion: "us-east-2",
 	}
 
 	switch i {
@@ -102,4 +107,34 @@ func fillResourceWithAtm(resource *pdata.Resource, atm Atm){
    atmAttrs.InsertString("atm.serialnumber", atm.SerialNumber)
 }
 
+
+func fillResourceWithBackendSystem(resource *pdata.Resource, backend BackendSystem){
+	backendAttrs := resource.Attributes()
+	var osType, cloudProvider string
+
+	switch {
+		case backend.CloudProvider == "amzn":
+			cloudProvider = conventions.AttributeCloudProviderAWS
+		case backend.OSType == "mcrsft":
+			cloudProvider = conventions.AttributeCloudProviderAzure
+		case backend.OSType == "gogl":
+			cloudProvider = conventions.AttributeCloudProviderGCP		
+	}
+
+	backendAttrs.InsertString(conventions.AttributeCloudProvider, cloudProvider)
+	backendAttrs.InsertString(conventions.AttributeCloudRegion, backend.CloudRegion)
+	
+	switch {
+		case backend.OSType == "lnx":
+			osType = conventions.AttributeOSTypeLinux
+		case backend.OSType == "wndws":
+			osType = conventions.AttributeOSTypeWindows
+		case backend.OSType == "slrs":
+			osType = conventions.AttributeOSTypeSolaris			
+	}
+	
+	backendAttrs.InsertString(conventions.AttributeOSType, osType)
+	backendAttrs.InsertString(conventions.AttributeOSVersion, backend.OSVersion)
+
+ }
 
