@@ -2,6 +2,7 @@ package tracemock
 
 import (
 	"context"
+	"time"
 
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/consumer"
@@ -20,7 +21,22 @@ func (tracemokRcvr *tracemockReceiver) Start(ctx context.Context, host component
     tracemokRcvr.host = host
     ctx = context.Background()
 	ctx, tracemokRcvr.cancel = context.WithCancel(ctx)
-	tracemokRcvr.logger.Info("I should start processing traces now!")
+ 
+	interval, _ := time.ParseDuration(tracemokRcvr.config.Interval)
+	go func() {
+		ticker := time.NewTicker(interval)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ticker.C:
+				tracemokRcvr.logger.Info("I should start processing traces now!")
+				tracemokRcvr.nextConsumer.ConsumeTraces(ctx, generateTraces())
+			case <-ctx.Done():
+				return
+			}
+		}
+	}()
+
 	return nil
 }
 
