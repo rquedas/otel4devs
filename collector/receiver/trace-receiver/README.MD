@@ -1873,7 +1873,7 @@ func appendTraceSpans(backend *BackendSystem, backendInstrLbrSpans *pdata.Instru
 }
 ```
 
-Go ahead and your `dev-otelcol` again and after 2 minutes running, you should start seeing traces in Jaeger like the following:
+Go ahead and run your `dev-otelcol` again and after 2 minutes running, you should start seeing traces in Jaeger like the following:
 ![Jaeger trace](images/Jaeger-Fullsystem-Trace%20list.png)
 
 &nbsp;
