@@ -27,19 +27,19 @@ func createTracesReceiver(_ context.Context, params component.ReceiverCreateSett
 	}
 	
 	logger := params.Logger
-	tracemockCfg := baseCfg.(*Config)
+	tailtracerCfg := baseCfg.(*Config)
 
 	traceRcvr := &tailtracerReceiver{
 		logger:       logger,
 		nextConsumer: consumer,
-		config:       tracemockCfg,
+		config:       tailtracerCfg,
 	}
 	
 	return traceRcvr, nil
 
 }
 
-// NewFactory creates a factory for tracemock receiver.
+// NewFactory creates a factory for tailtracer receiver.
 func NewFactory() component.ReceiverFactory {
 	return component.NewReceiverFactory(
 		typeStr,
