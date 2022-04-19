@@ -1,4 +1,4 @@
-package tracemock
+package tailtracer
 
 import (
 	"context"
@@ -9,7 +9,7 @@ import (
 	"go.uber.org/zap"
 )
 
-type tracemockReceiver struct {
+type tailtracerReceiver struct {
     host component.Host
 	cancel context.CancelFunc
 	logger       *zap.Logger
@@ -17,7 +17,7 @@ type tracemockReceiver struct {
 	config       *Config
 }
 
-func (tracemokRcvr *tracemockReceiver) Start(ctx context.Context, host component.Host) error {
+func (tracemokRcvr *tailtracerReceiver) Start(ctx context.Context, host component.Host) error {
     tracemokRcvr.host = host
     ctx = context.Background()
 	ctx, tracemokRcvr.cancel = context.WithCancel(ctx)
@@ -30,7 +30,7 @@ func (tracemokRcvr *tracemockReceiver) Start(ctx context.Context, host component
 			select {
 			case <-ticker.C:
 				tracemokRcvr.logger.Info("I should start processing traces now!")
-				tracemokRcvr.nextConsumer.ConsumeTraces(ctx, generateTraces())
+				tracemokRcvr.nextConsumer.ConsumeTraces(ctx, generateTraces(tracemokRcvr.config.NumberOfTraces))
 			case <-ctx.Done():
 				return
 			}
@@ -40,7 +40,7 @@ func (tracemokRcvr *tracemockReceiver) Start(ctx context.Context, host component
 	return nil
 }
 
-func (tracemokRcvr *tracemockReceiver) Shutdown(ctx context.Context) error {
+func (tracemokRcvr *tailtracerReceiver) Shutdown(ctx context.Context) error {
 	tracemokRcvr.cancel()
 	tracemokRcvr.logger.Info("I am done and ready to shutdown!")
 	return nil

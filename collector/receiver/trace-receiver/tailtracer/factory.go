@@ -1,4 +1,4 @@
-package tracemock
+package tailtracer
 
 import (
 	"context"
@@ -6,12 +6,11 @@ import (
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/config"
 	"go.opentelemetry.io/collector/consumer"
-	"go.opentelemetry.io/collector/receiver/receiverhelper"
 	"go.opentelemetry.io/collector/component/componenterror"
 )
 
 const (
-	typeStr = "tracemock"
+	typeStr = "tailtracer"
 	defaultInterval = "1m"
 )
 
@@ -30,7 +29,7 @@ func createTracesReceiver(_ context.Context, params component.ReceiverCreateSett
 	logger := params.Logger
 	tracemockCfg := baseCfg.(*Config)
 
-	traceRcvr := &tracemockReceiver{
+	traceRcvr := &tailtracerReceiver{
 		logger:       logger,
 		nextConsumer: consumer,
 		config:       tracemockCfg,
@@ -42,8 +41,8 @@ func createTracesReceiver(_ context.Context, params component.ReceiverCreateSett
 
 // NewFactory creates a factory for tracemock receiver.
 func NewFactory() component.ReceiverFactory {
-	return receiverhelper.NewFactory(
+	return component.NewReceiverFactory(
 		typeStr,
 		createDefaultConfig,
-		receiverhelper.WithTraces(createTracesReceiver))
+		component.WithTracesReceiver(createTracesReceiver))
 }

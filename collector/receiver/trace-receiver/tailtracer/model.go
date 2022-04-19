@@ -1,4 +1,4 @@
-package tracemock
+package tailtracer
 
 import (
 	"math/rand"
@@ -94,25 +94,28 @@ func getRandomNumber(min int, max int) int {
     return i	
 } 
 
-func generateTraces() pdata.Traces{
+func generateTraces(numberOfTraces int) pdata.Traces{
 	traces := pdata.NewTraces()
-	newAtm := generateAtm()
-	newBackendSystem := generateBackendSystem()
 
-	resourceSpan := traces.ResourceSpans().AppendEmpty()
-	atmResource := resourceSpan.Resource()
-	fillResourceWithAtm(&atmResource, newAtm)
-
-	atmInstLibray := appendAtmSystemInstrLibSpans(&resourceSpan)
-
-	resourceSpan = traces.ResourceSpans().AppendEmpty()
-	backendResource := resourceSpan.Resource()
-	fillResourceWithBackendSystem(&backendResource, newBackendSystem)
-
-	backendInstLibrary := appendAtmSystemInstrLibSpans(&resourceSpan)
+	for i := 0; i <= numberOfTraces; i++{
+		newAtm := generateAtm()
+		newBackendSystem := generateBackendSystem()
 	
-
-	appendTraceSpans(&newBackendSystem, &backendInstLibrary, &atmInstLibray)
+		resourceSpan := traces.ResourceSpans().AppendEmpty()
+		atmResource := resourceSpan.Resource()
+		fillResourceWithAtm(&atmResource, newAtm)
+	
+		atmInstLibray := appendAtmSystemInstrLibSpans(&resourceSpan)
+	
+		resourceSpan = traces.ResourceSpans().AppendEmpty()
+		backendResource := resourceSpan.Resource()
+		fillResourceWithBackendSystem(&backendResource, newBackendSystem)
+	
+		backendInstLibrary := appendAtmSystemInstrLibSpans(&resourceSpan)
+		
+	
+		appendTraceSpans(&newBackendSystem, &backendInstLibrary, &atmInstLibray)
+	} 
 
 	return traces
 }

@@ -1,4 +1,4 @@
-package tracemock
+package tailtracer
 
 import (
 	"fmt"

@@ -1,7 +1,7 @@
 receivers:
-  tracemock:  
+  tailtracer:  
     interval: 1m
-    number_of_traces: 1
+    number_of_traces: 3
   otlp:
     protocols:
       grpc:
@@ -20,6 +20,6 @@ exporters:
 service:
   pipelines:
     traces:
-      receivers: [otlp, tracemock]
+      receivers: [otlp, tailtracer]
       processors: []
       exporters: [jaeger, logging]
