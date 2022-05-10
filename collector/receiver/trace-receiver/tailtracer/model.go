@@ -10,8 +10,9 @@ import (
 	crand "crypto/rand"
 
 	"github.com/google/uuid"
-	"go.opentelemetry.io/collector/model/pdata"
-	conventions "go.opentelemetry.io/collector/model/semconv/v1.8.0"
+	"go.opentelemetry.io/collector/pdata/pcommon"
+	"go.opentelemetry.io/collector/pdata/ptrace"
+	conventions "go.opentelemetry.io/collector/model/semconv/v1.9.0"
 )
 
 type Atm struct{
@@ -94,8 +95,8 @@ func getRandomNumber(min int, max int) int {
     return i	
 } 
 
-func generateTraces(numberOfTraces int) pdata.Traces{
-	traces := pdata.NewTraces()
+func generateTraces(numberOfTraces int) ptrace.Traces{
+	traces := ptrace.NewTraces()
 
 	for i := 0; i <= numberOfTraces; i++{
 		newAtm := generateAtm()
@@ -120,7 +121,7 @@ func generateTraces(numberOfTraces int) pdata.Traces{
 	return traces
 }
 
-func fillResourceWithAtm(resource *pdata.Resource, atm Atm){
+func fillResourceWithAtm(resource *pcommon.Resource, atm Atm){
    atmAttrs := resource.Attributes()
    atmAttrs.InsertInt("atm.id", atm.ID)
    atmAttrs.InsertString("atm.stateid", atm.StateID)
@@ -131,7 +132,7 @@ func fillResourceWithAtm(resource *pdata.Resource, atm Atm){
 
 }
 
-func fillResourceWithBackendSystem(resource *pdata.Resource, backend BackendSystem){
+func fillResourceWithBackendSystem(resource *pcommon.Resource, backend BackendSystem){
 	backendAttrs := resource.Attributes()
 	var osType, cloudProvider string
 
@@ -164,15 +165,15 @@ func fillResourceWithBackendSystem(resource *pdata.Resource, backend BackendSyst
 
  }
 
- func appendAtmSystemInstrLibSpans(resourceSpans *pdata.ResourceSpans) (pdata.InstrumentationLibrarySpans){
-	iLibSpans := resourceSpans.InstrumentationLibrarySpans().AppendEmpty()
-	iLibSpans.InstrumentationLibrary().SetName("atm-sytem")
-	iLibSpans.InstrumentationLibrary().SetVersion("v1.0")
+ func appendAtmSystemInstrLibSpans(resourceSpans *ptrace.ResourceSpans) (ptrace.ScopeSpans){
+	iLibSpans := resourceSpans.ScopeSpans().AppendEmpty()
+	iLibSpans.Scope().SetName("atm-sytem")
+	iLibSpans.Scope().SetVersion("v1.0")
 	return iLibSpans
 }
 
 
-func appendTraceSpans(backend *BackendSystem, backendInstrLbrSpans *pdata.InstrumentationLibrarySpans, atmInstrLbrSpans *pdata.InstrumentationLibrarySpans){
+func appendTraceSpans(backend *BackendSystem, backendScopeSpans *ptrace.ScopeSpans, atmScopeSpans *ptrace.ScopeSpans){
 	traceId := NewTraceID()
 
 	var atmOperationName string
@@ -192,14 +193,14 @@ func appendTraceSpans(backend *BackendSystem, backendInstrLbrSpans *pdata.Instru
     atmSpanFinishTime := atmSpanStartTime.Add(atmDuration)
 
 
-	atmSpan := atmInstrLbrSpans.Spans().AppendEmpty()
+	atmSpan := atmScopeSpans.Spans().AppendEmpty()
 	atmSpan.SetTraceID(traceId)
 	atmSpan.SetSpanID(atmSpanId)
 	atmSpan.SetName(atmOperationName)
-	atmSpan.SetKind(pdata.SpanKindClient)
-	atmSpan.Status().SetCode(pdata.StatusCodeOk)
-	atmSpan.SetStartTimestamp(pdata.NewTimestampFromTime(atmSpanStartTime))
-	atmSpan.SetEndTimestamp(pdata.NewTimestampFromTime(atmSpanFinishTime))
+	atmSpan.SetKind(ptrace.SpanKindClient)
+	atmSpan.Status().SetCode(ptrace.StatusCodeOk)
+	atmSpan.SetStartTimestamp(pcommon.NewTimestampFromTime(atmSpanStartTime))
+	atmSpan.SetEndTimestamp(pcommon.NewTimestampFromTime(atmSpanFinishTime))
 
 
 	backendSpanId := NewSpanID()
@@ -208,30 +209,30 @@ func appendTraceSpans(backend *BackendSystem, backendInstrLbrSpans *pdata.Instru
     backendSpanStartTime := atmSpanStartTime.Add(backendDuration)
 
 
-	backendSpan := backendInstrLbrSpans.Spans().AppendEmpty()
+	backendSpan := backendScopeSpans.Spans().AppendEmpty()
 	backendSpan.SetTraceID(atmSpan.TraceID())
 	backendSpan.SetSpanID(backendSpanId)
 	backendSpan.SetParentSpanID(atmSpan.SpanID())
 	backendSpan.SetName(backend.Endpoint)
-	backendSpan.SetKind(pdata.SpanKindServer)
-	backendSpan.Status().SetCode(pdata.StatusCodeOk)
-	backendSpan.SetStartTimestamp(pdata.NewTimestampFromTime(backendSpanStartTime))
+	backendSpan.SetKind(ptrace.SpanKindServer)
+	backendSpan.Status().SetCode(ptrace.StatusCodeOk)
+	backendSpan.SetStartTimestamp(pcommon.NewTimestampFromTime(backendSpanStartTime))
 	backendSpan.SetEndTimestamp(atmSpan.EndTimestamp())
 
 }
 
-func NewTraceID() pdata.TraceID{
-	return pdata.NewTraceID(uuid.New())
+func NewTraceID() pcommon.TraceID{
+	return pcommon.NewTraceID(uuid.New())
 }
 
-func NewSpanID() pdata.SpanID {
+func NewSpanID() pcommon.SpanID {
 	var rngSeed int64
 	_ = binary.Read(crand.Reader, binary.LittleEndian, &rngSeed)
 	randSource := rand.New(rand.NewSource(rngSeed))
 
 	var sid [8]byte
 	randSource.Read(sid[:])
-    spanID := pdata.NewSpanID(sid)
+    spanID := pcommon.NewSpanID(sid)
 
 	return spanID
 }
