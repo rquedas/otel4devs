@@ -189,7 +189,7 @@ func appendTraceSpans(backend *BackendSystem, backendScopeSpans *ptrace.ScopeSpa
 
 	atmSpanId := NewSpanID()
     atmSpanStartTime := time.Now()
-    atmDuration, _ := time.ParseDuration("2s")
+    atmDuration, _ := time.ParseDuration("4s")
     atmSpanFinishTime := atmSpanStartTime.Add(atmDuration)
 
 
@@ -205,7 +205,7 @@ func appendTraceSpans(backend *BackendSystem, backendScopeSpans *ptrace.ScopeSpa
 
 	backendSpanId := NewSpanID()
 
-	backendDuration, _ := time.ParseDuration("1s")
+	backendDuration, _ := time.ParseDuration("2s")
     backendSpanStartTime := atmSpanStartTime.Add(backendDuration)
 
 
