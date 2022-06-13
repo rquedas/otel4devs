@@ -1181,8 +1181,11 @@ Open the `tailtracer/model.go` file and add the following function to it:
 ```go
 func generateTraces() ptrace.Traces{
 	traces := ptraces.NewTraces()
-	newAtm := generateAtm()
-	newBackendSystem := generateBackendSystem()
+
+	for i := 0; i <= numberOfTraces; i++{
+		newAtm := generateAtm()
+		newBackendSystem := generateBackendSystem()
+	}
 
 	return traces
 }
@@ -1211,11 +1214,14 @@ Here is what the function should look like after you implemented these changes:
  ```go
 func generateTraces() ptrace.Traces{
 	traces := ptrace.NewTraces()
-	newAtm := generateAtm()
-	newBackendSystem := generateBackendSystem()
 
-	resourceSpan := traces.ResourceSpans().AppendEmpty()
-    atmResource := resourceSpan.Resource()
+	for i := 0; i <= numberOfTraces; i++{
+		newAtm := generateAtm()
+		newBackendSystem := generateBackendSystem()
+
+		resourceSpan := traces.ResourceSpans().AppendEmpty()
+		atmResource := resourceSpan.Resource()
+	}
 
 	return traces
 }
@@ -1404,16 +1410,19 @@ func getRandomNumber(min int, max int) int {
 
 func generateTraces() ptrace.Traces{
 	traces := ptraces.NewTraces()
-	newAtm := generateAtm()
-	newBackendSystem := generateBackendSystem()
 
-	resourceSpan := traces.ResourceSpans().AppendEmpty()
-	atmResource := resourceSpan.Resource()
-	fillResourceWithAtm(&atmResource, newAtm)
+	for i := 0; i <= numberOfTraces; i++{
+		newAtm := generateAtm()
+		newBackendSystem := generateBackendSystem()
 
-	resourceSpan = traces.ResourceSpans().AppendEmpty()
-	backendResource := resourceSpan.Resource()
-	fillResourceWithBackendSystem(&backendResource, newBackendSystem)
+		resourceSpan := traces.ResourceSpans().AppendEmpty()
+		atmResource := resourceSpan.Resource()
+		fillResourceWithAtm(&atmResource, newAtm)
+
+		resourceSpan = traces.ResourceSpans().AppendEmpty()
+		backendResource := resourceSpan.Resource()
+		fillResourceWithBackendSystem(&backendResource, newBackendSystem)
+	}
 
 	return traces
 }
@@ -1524,21 +1533,24 @@ You can now update the `generateTraces()` function and add variables to represen
 ```go
 func generateTraces() ptrace.Traces{
 	traces := ptraces.NewTraces()
-	newAtm := generateAtm()
-	newBackendSystem := generateBackendSystem()
 
-	resourceSpan := traces.ResourceSpans().AppendEmpty()
-	atmResource := resourceSpan.Resource()
-	fillResourceWithAtm(&atmResource, newAtm)
+	for i := 0; i <= numberOfTraces; i++{
+		newAtm := generateAtm()
+		newBackendSystem := generateBackendSystem()
 
-	atmInstScope := appendAtmSystemInstrScopeSpans(&resourceSpan)
+		resourceSpan := traces.ResourceSpans().AppendEmpty()
+		atmResource := resourceSpan.Resource()
+		fillResourceWithAtm(&atmResource, newAtm)
 
-	resourceSpan = traces.ResourceSpans().AppendEmpty()
-	backendResource := resourceSpan.Resource()
-	fillResourceWithBackendSystem(&backendResource, newBackendSystem)
+		atmInstScope := appendAtmSystemInstrScopeSpans(&resourceSpan)
 
-	backendInstScope := appendAtmSystemInstrScopeSpans(&resourceSpan)
-	
+		resourceSpan = traces.ResourceSpans().AppendEmpty()
+		backendResource := resourceSpan.Resource()
+		fillResourceWithBackendSystem(&backendResource, newBackendSystem)
+
+		backendInstScope := appendAtmSystemInstrScopeSpans(&resourceSpan)
+	}
+
 	return traces
 }
 ```
@@ -1648,24 +1660,27 @@ You will now update the `generateTraces()` function so it can actually generate 
 ```go
 func generateTraces() ptrace.Traces{
 	traces := ptraces.NewTraces()
-	newAtm := generateAtm()
-	newBackendSystem := generateBackendSystem()
 
-	resourceSpan := traces.ResourceSpans().AppendEmpty()
-	atmResource := resourceSpan.Resource()
-	fillResourceWithAtm(&atmResource, newAtm)
+	for i := 0; i <= numberOfTraces; i++{			
+		newAtm := generateAtm()
+		newBackendSystem := generateBackendSystem()
 
-	atmInstScope := appendAtmSystemInstrScopeSpans(&resourceSpan)
+		resourceSpan := traces.ResourceSpans().AppendEmpty()
+		atmResource := resourceSpan.Resource()
+		fillResourceWithAtm(&atmResource, newAtm)
 
-	resourceSpan = traces.ResourceSpans().AppendEmpty()
-	backendResource := resourceSpan.Resource()
-	fillResourceWithBackendSystem(&backendResource, newBackendSystem)
+		atmInstScope := appendAtmSystemInstrScopeSpans(&resourceSpan)
 
-	backendInstScope := appendAtmSystemInstrScopeSpans(&resourceSpan)
+		resourceSpan = traces.ResourceSpans().AppendEmpty()
+		backendResource := resourceSpan.Resource()
+		fillResourceWithBackendSystem(&backendResource, newBackendSystem)
+
+		backendInstScope := appendAtmSystemInstrScopeSpans(&resourceSpan)
+		
+
+		appendTraceSpans(&newBackendSystem, &backendInstScope, &atmInstScope)
+	}
 	
-
-	appendTraceSpans(&newBackendSystem, &backendInstScope, &atmInstScope)
-
 	return traces
 }
 ```
@@ -1754,9 +1769,9 @@ Resource labels:
      -> atm.serialnumber: STRING(atmxph-2022-222)
      -> service.name: STRING(ATM-222-CA)
      -> service.version: STRING(v1.0)
-InstrumentationLibrarySpans #0
-InstrumentationLibrarySpans SchemaURL: 
-InstrumentationLibrary atm-sytem v1.0
+ScopeSpans #0
+ScopeSpans SchemaURL: 
+InstrumentationScope atm-sytem v1.0
 ResourceSpans #1
 Resource SchemaURL: 
 Resource labels:
@@ -1766,9 +1781,9 @@ Resource labels:
      -> os.version: STRING(4.16.10-300.fc28.x86_64)
      -> service.name: STRING(accounts)
      -> service.version: STRING(v2.5)
-InstrumentationLibrarySpans #0
-InstrumentationLibrarySpans SchemaURL: 
-InstrumentationLibrary atm-sytem v1.0
+ScopeSpans #0
+ScopeSpans SchemaURL: 
+InstrumentationScope atm-sytem v1.0
 Span #0
     Trace ID       : 5cce8a774d4546c2a5cbdeb607ec74c9
     Parent ID      : 
@@ -1790,9 +1805,9 @@ Resource labels:
      -> atm.serialnumber: STRING(atmxph-2022-111)
      -> service.name: STRING(ATM-111-IL)
      -> service.version: STRING(v1.0)
-InstrumentationLibrarySpans #0
-InstrumentationLibrarySpans SchemaURL: 
-InstrumentationLibrary atm-sytem v1.0
+ScopeSpans #0
+ScopeSpans SchemaURL: 
+InstrumentationScope atm-sytem v1.0
 ResourceSpans #1
 Resource SchemaURL: 
 Resource labels:
@@ -1802,9 +1817,9 @@ Resource labels:
      -> os.version: STRING(4.16.10-300.fc28.x86_64)
      -> service.name: STRING(accounts)
      -> service.version: STRING(v2.5)
-InstrumentationLibrarySpans #0
-InstrumentationLibrarySpans SchemaURL: 
-InstrumentationLibrary atm-sytem v1.0
+ScopeSpans #0
+ScopeSpans SchemaURL: 
+InstrumentationScope atm-sytem v1.0
 Span #0
     Trace ID       : 8a6ca822db0847f48facfebbb08bbb9e
     Parent ID      : 
