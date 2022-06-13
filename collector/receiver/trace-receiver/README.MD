@@ -182,7 +182,7 @@ type Config struct{
 
 In order to be able to give your receiver access to it's settings the `Config` struct must:
 
-- embed the [config.ReceiverSettings](https://github.com/open-telemetry/opentelemetry-collector/blob/v0.49.0/config/receiver.go#L32) struct or a struct that extends it.
+- embed the [config.ReceiverSettings](https://github.com/open-telemetry/opentelemetry-collector/blob/v0.53.0/config/receiver.go#L42) struct or a struct that extends it.
 
 - Add a field for each of the receiver's settings.
 
@@ -214,7 +214,7 @@ type Config struct {
 
   
 
-Now that you have access to the settings, you can provide any kind of validation needed for those values by implementing the `Validate` method according to the [validatable](https://github.com/open-telemetry/opentelemetry-collector/blob/v0.49.0/config/config.go#L154) interface.
+Now that you have access to the settings, you can provide any kind of validation needed for those values by implementing the `Validate` method according to the [validatable](https://github.com/open-telemetry/opentelemetry-collector/blob/v0.53.0/config/common.go#L24) interface.
 
 In this case, the `interval` value will be optional (we will look at generating default values later) but when defined should be at least 1 minute (1m) and the the `number_of_traces` will be a required value. Here is what the config.go looks like after implementing the `Validate` method.
 
@@ -255,7 +255,7 @@ func (cfg *Config) Validate() error {
 >- I added the `Validate` method to my Config struct where I am checking if the `interval` setting value is at least 1 minute (1m) and if the `number_of_traces` setting value is greater or equal to 1. If that is not true the Collector will generate an error during it's startup process and display the message accordingly.
 
 
-If you want to take a closer look at the structs and interfaces involved in the configuration aspects of a receiver component, take a look at the [config/receiver.go](https://github.com/open-telemetry/opentelemetry-collector/blob/v0.49.0/config/receiver.go) file inside the Collector's GitHub project.
+If you want to take a closer look at the structs and interfaces involved in the configuration aspects of a receiver component, take a look at the [config/receiver.go](https://github.com/open-telemetry/opentelemetry-collector/blob/v0.53.0/config/receiver.go) file inside the Collector's GitHub project.
 
   
 
@@ -308,11 +308,11 @@ func components() (component.Factories, error) {
 }
 ```
 
-As you can see, the `components()` function is responsible to provide the Collector the factories for all it's components which is represented by a variable called `factories` of type `component.Factories` (here is the declaration of the [component.Factories](https://github.com/open-telemetry/opentelemetry-collector/blob/v0.49.0/component/factories.go#L25) struct), which will then be used to instantiate the components that are configured and consumed by the Collector's pipelines.
+As you can see, the `components()` function is responsible to provide the Collector the factories for all it's components which is represented by a variable called `factories` of type `component.Factories` (here is the declaration of the [component.Factories](https://github.com/open-telemetry/opentelemetry-collector/blob/v0.53.0/component/factories.go#L25) struct), which will then be used to instantiate the components that are configured and consumed by the Collector's pipelines.
 
 Notice that `factories.Receivers` is the field holding a map to all the receiver factories (instances of `ReceiverFactory`), and it currently has the `otlpreceiver` factory only which is instantiated through the `otlpreceiver.NewFactory()` function call.
 
-The `tailtracer` receiver has to provide a `ReceiverFactory` implementation, and although you will find a `ReceiverFactory` interface (you can find it's definition in the [component/receiver.go](https://github.com/open-telemetry/opentelemetry-collector/blob/v0.49.0/component/receiver.go#L105) file within the Collector's project ), the right way to provide the implementation is by using the functions available within the `go.opentelemetry.io/collector/component` package.
+The `tailtracer` receiver has to provide a `ReceiverFactory` implementation, and although you will find a `ReceiverFactory` interface (you can find it's definition in the [component/receiver.go](https://github.com/open-telemetry/opentelemetry-collector/blob/v0.53.0/component/receiver.go#L104) file within the Collector's project ), the right way to provide the implementation is by using the functions available within the `go.opentelemetry.io/collector/component` package.
 
   
 
@@ -372,7 +372,7 @@ Let's now implement the code to support all the parameters required by `componen
 ### Identifying and Providing default settings for the receiver
   
 
-If you take a look at the definition of [config.Type](https://github.com/open-telemetry/opentelemetry-collector/blob/v0.49.0/config/config.go#L151), you will see that it's just a string. So all we need to do is to provide a string constant representing the unique identifier for our receiver.
+If you take a look at the definition of [config.Type](https://github.com/open-telemetry/opentelemetry-collector/blob/v0.53.0/config/common.go#L21), you will see that it's just a string. So all we need to do is to provide a string constant representing the unique identifier for our receiver.
 
 Previously, we said that the `interval` setting for our `tailtracer` receiver would be optional, in that case you will need to provide a default value for it so it can be used as part of the default settings. 
 
@@ -446,9 +446,9 @@ func NewFactory() component.ReceiverFactory {
   
 
 
-If you take a closer look at the `ReceiverSettings` struct and `NewReceiverSettings` function (they are declared within the [config/receiver.go](https://github.com/open-telemetry/opentelemetry-collector/blob/v0.49.0/config/receiver.go) file inside the Collector's GitHub project), you will find out that the `ReceiverSettings` is implementing the methods to support the `identifiable` interface which are also required by any Collector's component.
+If you take a closer look at the `ReceiverSettings` struct and `NewReceiverSettings` function (they are declared within the [config/receiver.go](https://github.com/open-telemetry/opentelemetry-collector/blob/v0.53.0/config/receiver.go) file inside the Collector's GitHub project), you will find out that the `ReceiverSettings` is implementing the methods to support the `identifiable` interface which are also required by any Collector's component.
 
-All the types and functions involved in supporting the requirements for component's identification are implemented within the [config/identifiable.go](https://github.com/open-telemetry/opentelemetry-collector/blob/v0.49.0/config/identifiable.go) file inside the Collector's GitHub project.
+All the types and functions involved in supporting the requirements for component's identification are implemented within the [config/identifiable.go](https://github.com/open-telemetry/opentelemetry-collector/blob/v0.53.0/config/identifiable.go) file inside the Collector's GitHub project.
 
   
 
@@ -665,9 +665,9 @@ The `tailtracer` receiver factory and config requirements are done and the Colle
 
 In the previous section, I mentioned the fact that a receiver can process any of the OTel supported datasources (traces, metrics or log), and the Collector's API is designed to help you accomplish that.
 
-All the receiver API's responsible to enable the datasources are currently declared in the [component/receiver.go](https://github.com/open-telemetry/opentelemetry-collector/blob/v0.49.0/config/receiver.go) file within the OTel Collector's project in GitHub, open the file and take a minute to browse through all the interfaces declared in it. 
+All the receiver API's responsible to enable the datasources are currently declared in the [component/receiver.go](https://github.com/open-telemetry/opentelemetry-collector/blob/v0.53.0/component/receiver.go) file within the OTel Collector's project in GitHub, open the file and take a minute to browse through all the interfaces declared in it. 
 
-Notice that `component.TracesReceiver` (and it's siblings `MetricsReceiver` and `LogsReceiver`) at this point in time, doesn't describe any specific methods other than the ones it "inherits" from `component.Receiver` which also doesn't describe any specific methods other than the ones it "inherits" from `component.Component`. 
+Notice that `component.TracesReceiver` (and it's siblings `component.MetricsReceiver` and `component.LogsReceiver`) at this point in time, doesn't describe any specific methods other than the ones it "inherits" from `component.Receiver` which also doesn't describe any specific methods other than the ones it "inherits" from `component.Component`. 
 
 It might feel weird, but remember, the Collector's API was meant to be extensible, and the components and their datasources might evolve in different ways, so the role of those interfaces exist to help support that. 
 
@@ -1017,7 +1017,7 @@ Creating a trace within the trace receiver will be slightly different than the w
 
 ### Working with Resources
 
-In the OTel world, all telemetry is generated by a `Resource`, here is the definition according to the [OTel spec](https://github.com/open-telemetry/opentelemetry-specification/blob/v0.49.0/specification/resource/sdk.mds):
+In the OTel world, all telemetry is generated by a `Resource`, here is the definition according to the [OTel spec](https://github.com/open-telemetry/opentelemetry-specification/blob/main/specification/resource/sdk.md):
 
 >A `Resource` is an immutable representation of the entity producing telemetry as Attributes. For example, a process producing telemetry that is running in a container on Kubernetes has a Pod name, it is in a namespace and possibly is part of a Deployment which also has a name. All three of these attributes can be included in the `Resource`.
 
