@@ -863,7 +863,7 @@ Open the `tailtracer/factory.go` file and navigate to the `createTracesReceiver(
 
 The receiver is only instantiated if it's declared as a component within a pipeline and the factory is responsible to make sure the next consumer (either a processor or exporter) in the pipeline is valid otherwise it should generate an error. 
 
-The Collector's api provides a package with helper functions for component error handling called `go.opentelemetry.io/collector/component/componenterror`, if you open the [error.go](https://github.com/open-telemetry/opentelemetry-collector/blob/v0.49.0/component/componenterror/errors.go) you will find the `ErrNilNextConsumer` error, which is what your receiver factory should throw in case the next consumer has an issue and is passed as nil.
+The Collector's api provides some standard error types to help the factory handle pipeline configurations. Your receiver factory should throw a `component.ErrNilNextConsumer` in case the next consumer has an issue and is passed as nil.
 
 The `createTracesReceiver()` function will need a guard clause to make that validation.
 
@@ -881,7 +881,6 @@ import (
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/config"
 	"go.opentelemetry.io/collector/consumer"
-	"go.opentelemetry.io/collector/component/componenterror"
 )
 
 const (
@@ -898,7 +897,7 @@ func createDefaultConfig() config.Receiver {
 
 func createTracesReceiver(_ context.Context, params component.ReceiverCreateSettings, baseCfg config.Receiver, consumer consumer.Traces) (component.TracesReceiver, error) {
 	if consumer == nil {
-		return nil, componenterror.ErrNilNextConsumer
+		return nil, component.ErrNilNextConsumer
 	}
 	
 	logger := params.Logger
@@ -923,7 +922,7 @@ func NewFactory() component.ReceiverFactory {
 }
 ```
 >### Reviewing the code
->- Importing the `go.opentelemetry.io/collector/component/componenterror` which is where the component errors are declared.
+>- Added a guard clause that verifies if the consumer is properly instantiated and if not returns the `component.ErrNilNextConsumer`error. 
 >- Added a variable called `logger` and initialized it with the Collector's logger that is available as a field named `Logger` within the `component.ReceiverCreateSettings` reference.
 >- Added a variable called `tailtracerCfg` and initialized it by casting the `config.Receiver` reference to the `tailtracer` receiver `Config`.
 >- Added a variable called `traceRcvr` and initialized it with the `tailtracerReceiver` instance using the factory information stored within the variables.
