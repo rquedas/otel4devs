@@ -106,16 +106,16 @@ func generateTraces(numberOfTraces int) ptrace.Traces{
 		atmResource := resourceSpan.Resource()
 		fillResourceWithAtm(&atmResource, newAtm)
 	
-		atmInstLibray := appendAtmSystemInstrLibSpans(&resourceSpan)
+		atmInstScope := appendAtmSystemInstrScopeSpans(&resourceSpan)
 	
 		resourceSpan = traces.ResourceSpans().AppendEmpty()
 		backendResource := resourceSpan.Resource()
 		fillResourceWithBackendSystem(&backendResource, newBackendSystem)
 	
-		backendInstLibrary := appendAtmSystemInstrLibSpans(&resourceSpan)
+		backendInstScope := appendAtmSystemInstrScopeSpans(&resourceSpan)
 		
 	
-		appendTraceSpans(&newBackendSystem, &backendInstLibrary, &atmInstLibray)
+		appendTraceSpans(&newBackendSystem, &backendInstScope, &atmInstScope)
 	} 
 
 	return traces
@@ -165,11 +165,11 @@ func fillResourceWithBackendSystem(resource *pcommon.Resource, backend BackendSy
 
  }
 
- func appendAtmSystemInstrLibSpans(resourceSpans *ptrace.ResourceSpans) (ptrace.ScopeSpans){
-	iLibSpans := resourceSpans.ScopeSpans().AppendEmpty()
-	iLibSpans.Scope().SetName("atm-sytem")
-	iLibSpans.Scope().SetVersion("v1.0")
-	return iLibSpans
+ func appendAtmSystemInstrScopeSpans(resourceSpans *ptrace.ResourceSpans) (ptrace.ScopeSpans){
+	scopeSpans := resourceSpans.ScopeSpans().AppendEmpty()
+	scopeSpans.Scope().SetName("atm-sytem")
+	scopeSpans.Scope().SetVersion("v1.0")
+	return scopeSpans
 }
 
 
