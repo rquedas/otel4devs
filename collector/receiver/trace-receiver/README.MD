@@ -1,4 +1,4 @@
-# Building a Traces Receiver
+# Building a Traces Receiver (updated for v0.53.0)
 
  If you are reading this tutorial, you probably already have an idea of the OpenTelemetry concepts behind traces and/or distribute traces, but if you don't you can quickly read through it here: [OpenTelemetry - Data Sources - Traces](https://opentelemetry.io/docs/concepts/data-sources/#traces).
 
